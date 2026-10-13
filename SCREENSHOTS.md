@@ -23,7 +23,7 @@ def login():
     username = str(data.get('username', '')).strip().lower()
     user = db().execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
     if user is None:
-        return jsonify(error='That username does not exist. Try doon, otherdoon, or admin.'), 404
+        return jsonify(error='That username does not exist.'), 404
     return jsonify(user=dict(user))
 ```
 
@@ -83,3 +83,42 @@ def list_books(user_id):
 The screenshot below shows a typed `UPDATE` and a response reporting **three rows updated**, including Otherdoon's notes. Label this evidence **direct execution of client-supplied SQL with missing authorization**. The separate interpolated `LIKE` path is the classic SQL injection vulnerability; this screenshot does not demonstrate that path.
 
 ![[Pasted image 20261013112042.png]]
+
+# Secured version: authentication and authorization evidence
+
+## Generic login failure for an incorrect password and an unknown username
+
+The first screenshot uses a known username with an incorrect password; the second uses an unknown username. Both receive the same generic error, so the login response does not reveal which field failed. The demo account names remain visible on the page for presentation purposes.
+
+![[Pasted image 20261013233416.png|490]]![[Pasted image 20261013233440.png]]
+
+## Session restoration after refresh
+
+After refreshing the page, `/api/session` returned HTTP 200 and Doon's library reloaded without another login.
+
+![[Pasted image 20261013234007.png]]
+
+## Administrator endpoint denies non-admin and unsigned visitors
+
+While signed in as a regular user, a direct request to `/api/admin/books` returns an administrator-access error and HTTP 403 Forbidden.
+
+![[Pasted image 20261013234153.png]]![[Pasted image 20261013234300.png]]
+
+![[Pasted image 20261013234351.png]]
+
+After signing out, the same request returns HTTP 401 Unauthorized because there is no authenticated session.
+
+![[Pasted image 20261013234401.png]]
+
+## Administrator endpoint permits an administrator
+
+The application shows the Administrator identity, and a direct request to `/api/admin/books` returns HTTP 200 with records from both users.
+
+![[Pasted image 20261013234519.png]]
+![[Pasted image 20261013234557.png]]
+
+## Local HTTP limitation: cookie Secure flag is unset
+
+The local demonstration runs over HTTP, so the session cookie's `Secure` flag is unset. HTTPS and a `Secure` cookie remain deployment steps; this localhost screenshot does not establish how a production deployment would behave.
+
+![[Pasted image 20261013234700.png]]

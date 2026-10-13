@@ -29,6 +29,7 @@ h2 { font-size: 21px; font-weight: 600; line-height: 1.3; margin: 0 0 10px; }
 .login-form { padding: 36px; }
 .login-form h2 { font-size: 25px; }
 .login-form > .muted { margin: 0 0 28px; }
+.password-label { margin-top: 16px; }
 .muted { color: #6b766f; }
 label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
 input, textarea, select { width: 100%; background: white; color: #26352f; border: 1px solid #c7d0c5; border-radius: 5px; padding: 11px 12px; min-width: 0; }
@@ -40,7 +41,10 @@ textarea { resize: vertical; }
 .secondary:hover { background: #eff3ec; }
 .wide { width: 100%; margin-top: 18px; }
 .text-button { background: none; border: 0; padding: 4px 0; font-size: 14px; color: #365844; text-decoration: underline; text-underline-offset: 4px; }
-.demo-hint { border-top: 1px solid #e6e9e3; padding-top: 20px; margin: 24px 0 0; font-size: 12px; line-height: 1.8; color: #6b766f; }
+.demo-hint { border-top: 1px solid #e6e9e3; padding-top: 20px; margin-top: 24px; font-size: 12px; color: #6b766f; }
+.demo-hint p { margin: 0 0 8px; }
+.demo-hint ul { list-style: none; margin: 0; padding: 0; }
+.demo-hint li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
 code { color: #465747; }
 .library { padding: 44px 0 55px; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }

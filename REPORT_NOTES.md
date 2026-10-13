@@ -6,6 +6,8 @@ Last updated: 13 October 2026.
 
 ## Current status
 
+- The `v0.1.0-insecure` Git tag freezes the baseline. The `v0.1.1-secure` working branch now has password hashing, opaque SQLite-backed sessions, session restore/logout, an admin role check, request-token checks for writes, parameterized search, and plain-text note rendering. This is an intermediate implementation: cross-user ownership checks, login throttling, and verified HTTPS remain outstanding.
+- Authentication report point: unknown usernames and wrong passwords now receive the same HTTP 401 and `Username or password does not exist.` response. The baseline named a missing username. The generic response reduces direct account-enumeration clues; it does not replace rate limiting, and the public demo-account hint means these particular usernames are intentionally disclosed.
 - The assessment brief has been read, including its marking criteria.
 - The proposed project is a small personal ebook reading tracker with separate private libraries for multiple users.
 - The intended emphasis is security implementation, testing, and explanation. Interface styling is secondary.
