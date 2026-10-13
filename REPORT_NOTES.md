@@ -186,7 +186,7 @@ Suggested evidence record:
 | AUTHZ-02 | Same working tree | Doon logged in; Otherdoon owns book 4 | Create under user 2; edit and delete book 4 | Denied; stored data unchanged | HTTP 404; book and row count unchanged | `tests/test_ownership.py` | Write authorization is checked on the server |
 | AUTHZ-03 | Same working tree | Otherdoon logged in | Read, create, update, and delete own books | Accepted | Reads and writes succeeded; deleted book then returned 404 | `tests/test_ownership.py` | Ownership checks preserve legitimate use |
 | SQL-01 | Pending | Seeded database | Submit injection-like input to a query endpoint | Input cannot change SQL structure | Not run | Pending | Pending |
-| LOGIN-01 | Pending | Known throttle policy | Repeated failed logins | Limit applied according to policy | Not run | Pending | Pending |
+| LOGIN-01 | Login-throttling working tree | Five login requests from one IP | Sixth request, then retry after the window | HTTP 429 with retry guidance, then login available | 429 with `Retry-After`; valid login succeeds after a short test window; 11-test backend suite passed on 14 Oct 2026 | `tests/test_rate_limit.py` | Per-IP, in-memory throttling slows repeated login requests but does not establish DDoS resilience |
 | SESSION-01 | Pending | Valid session then logout | Replay old session | Authentication required | Not run | Pending | Pending |
 | CSRF-01 | Pending | Logged-in browser session | State-changing request without valid CSRF token | Rejected; data unchanged | Not run | Pending | Pending |
 | XSS-01 | Pending | Stored script-like note | Display note in browser | Text shown; no script execution | Not run | Pending | Pending |

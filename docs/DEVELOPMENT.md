@@ -1,6 +1,6 @@
 # Local development on the secure-work branch
 
-The tagged `v0.1.0-insecure` revision preserves the original baseline and its demonstration instructions. The `v0.1.1-auth-foundation` tag captures the intermediate version before ownership checks. This branch is **partway through hardening**: password authentication, server-side sessions, API sign-in checks, an admin role check, book ownership, request tokens for writes, parameterized search, and plain-text note rendering are implemented. Login throttling and HTTPS are still pending. Do not deploy this intermediate version.
+The tagged `v0.1.0-insecure` revision preserves the original baseline and its demonstration instructions. The `v0.1.1-auth-foundation` tag captures the intermediate version before ownership checks. This branch is **partway through hardening**: password authentication, server-side sessions, API sign-in checks, an admin role check, book ownership, request tokens for writes, parameterized search, plain-text note rendering, and login throttling are implemented. HTTPS and full field validation are still pending. Do not deploy this intermediate version.
 
 ## Initialize local demo accounts
 
@@ -13,6 +13,12 @@ The secure version uses `instance/secure.sqlite3`, separate from the baseline da
 The command prompts for passwords of at least 12 characters for `doon`, `otherdoon`, and `admin`. It stores salted password hashes, not the passwords. For this local presentation, the login page displays the current dummy passwords; they are intentionally public demo credentials and must not be reused for real accounts or a deployment. If you reinitialize with different passwords, update or remove the login-page hint. **Running `--init-db` again replaces all secure demo data**, but does not touch `instance/baseline.sqlite3`.
 
 ## Run the site
+
+Install the pinned Python dependencies after pulling this version:
+
+```sh
+python -m pip install -r requirements.txt
+```
 
 In one terminal:
 
@@ -30,6 +36,12 @@ Open <http://127.0.0.1:5173/>. Vite proxies `/api` to Flask on port 5001 and ref
 
 The browser sends an opaque, HttpOnly, SameSite=Lax cookie. The server stores only its SHA-256 digest with an expiry in SQLite. On page reload, `/api/session` restores the displayed identity. Logout removes the server record and clears the cookie. The browser keeps the request token in memory; normal POST/PUT/DELETE API calls require it. The cookie is marked `Secure` on HTTPS requests, but the current localhost development site uses HTTP. HTTPS deployment and its configuration still need to be implemented and verified.
 
+## Login throttling policy
+
+`/api/login` accepts at most five requests per minute from each client IP address. Both successful and failed requests count. A sixth request returns HTTP 429 with a generic JSON error and a `Retry-After` header; the response does not create a session. The counter is kept in Flask-Limiter's in-memory store, so it resets on server restart and is not shared between workers. This is suitable for the single-process local demonstration, but a deployed multi-worker service needs shared limiter storage. The app uses the directly connected IP address and does not trust forwarded IP headers; deployment behind a proxy requires an explicit trusted-proxy configuration. This control slows repeated login guesses at the application endpoint; it does not prevent distributed guessing or network-level denial of service. The demo test waits for a short configured window; the running application uses one minute.
+
+For a report screenshot, restart the local Flask server to clear the demonstration counter, submit five incorrect passwords from the same browser, then capture the sixth login request showing HTTP 429 and `Retry-After` in Network. Keep session cookies and request tokens out of shared screenshots.
+
 ## Verify
 
 Run these commands from the project root (`secure_programming_project`), not from `tests/`. If your terminal is currently in `tests/`, run `cd ..` first. The tests import `backend.app` as a project package.
@@ -41,4 +53,4 @@ pnpm build
 
 The backend suite uses a disposable database and does not alter the local demo accounts. The optional browser check is `tests/browser.cjs`; it expects `BASE_URL` and `DEMO_PASSWORD` for Doon's account. It creates and removes one temporary book. The earlier baseline browser/test scripts are preserved by the `v0.1.0-insecure` tag.
 
-Personal API routes now require the URL user ID or book owner to match the authenticated user. Cross-user requests return 404, including reads, creation, updates, and deletion; the separate administrator overview still requires the admin role. The ownership suite checks that rejected writes leave stored records unchanged and that legitimate owner operations continue to work. Do not describe this intermediate branch as a completed secure application while login throttling and HTTPS remain pending.
+Personal API routes now require the URL user ID or book owner to match the authenticated user. Cross-user requests return 404, including reads, creation, updates, and deletion; the separate administrator overview still requires the admin role. The ownership suite checks that rejected writes leave stored records unchanged and that legitimate owner operations continue to work. Do not describe this intermediate branch as a completed secure application while HTTPS and full field validation remain pending.

@@ -9,13 +9,16 @@ import time
 from contextlib import closing
 from pathlib import Path
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, make_response, request, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash, generate_password_hash
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DB = ROOT / 'instance' / 'secure.sqlite3'
 SESSION_COOKIE = 'bookledger_session'
 SESSION_LIFETIME = 60 * 60
+LOGIN_LIMIT = '5 per minute'
 LOGIN_ERROR = 'Username or password does not exist.'
 DUMMY_PASSWORD_HASH = generate_password_hash('dummy-password-for-timing')
 BOOK_SELECT = '''SELECT b.id, b.user_id, u.username, u.display_name,
@@ -83,11 +86,23 @@ def reset_database(path, passwords):
         )
 
 
-def create_app(database_path=None):
+def create_app(database_path=None, login_limit=LOGIN_LIMIT):
     app = Flask(__name__, static_folder=None)
     app.config['DATABASE'] = str(database_path or DEFAULT_DB)
     if not Path(app.config['DATABASE']).exists():
         raise RuntimeError('Secure database is missing. Run: python -m backend.app --init-db')
+
+    def login_limit_response(_limit):
+        return make_response(jsonify(error='Too many login attempts. Try again later.'), 429)
+
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        storage_uri='memory://',
+        headers_enabled=True,
+        retry_after='delta-seconds',
+        on_breach=login_limit_response,
+    )
 
     def db():
         if 'db' not in g:
@@ -155,6 +170,7 @@ def create_app(database_path=None):
         return jsonify(status='ok', stage='hardening-in-progress')
 
     @app.post('/api/login')
+    @limiter.limit(login_limit)
     def login():
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
