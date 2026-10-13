@@ -1,4 +1,4 @@
-"""Local coursework app. Authentication is implemented; hardening continues."""
+"""Local coursework app. Authentication and ownership are implemented; hardening continues."""
 
 import argparse
 import getpass
@@ -104,6 +104,12 @@ def create_app(database_path=None):
     def book_by_id(book_id):
         return db().execute(BOOK_SELECT + ' WHERE b.id = ?', (book_id,)).fetchone()
 
+    def owned_book(book_id):
+        return db().execute(
+            BOOK_SELECT + ' WHERE b.id = ? AND b.user_id = ?',
+            (book_id, current_session()['id']),
+        ).fetchone()
+
     def public_user(row):
         return {key: row[key] for key in ('id', 'username', 'display_name', 'role')}
 
@@ -146,7 +152,7 @@ def create_app(database_path=None):
     @app.get('/api/health')
     def health():
         db().execute('SELECT 1')
-        return jsonify(status='ok', stage='authentication-in-progress')
+        return jsonify(status='ok', stage='hardening-in-progress')
 
     @app.post('/api/login')
     def login():
@@ -191,7 +197,8 @@ def create_app(database_path=None):
 
     @app.get('/api/users/<int:user_id>')
     def get_user(user_id):
-        # Ownership checks for URL-selected records are the next hardening step.
+        if user_id != current_session()['id']:
+            return jsonify(error='User not found.'), 404
         user = db().execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
         if user is None:
             return jsonify(error='User not found.'), 404
@@ -199,31 +206,32 @@ def create_app(database_path=None):
 
     @app.get('/api/users/<int:user_id>/books')
     def list_books(user_id):
+        if user_id != current_session()['id']:
+            return jsonify(error='User not found.'), 404
         search = request.args.get('q', '')
         if len(search) > 200:
             return jsonify(error='Search is too long.'), 400
         rows = db().execute(
             BOOK_SELECT + ' WHERE b.user_id = ? AND b.title LIKE ? ORDER BY b.id',
-            (user_id, f'%{search}%'),
+            (current_session()['id'], f'%{search}%'),
         ).fetchall()
         return jsonify(books=[dict(row) for row in rows])
 
     @app.get('/api/books/<int:book_id>')
     def get_book(book_id):
-        row = book_by_id(book_id)
+        row = owned_book(book_id)
         if row is None:
             return jsonify(error='Book not found.'), 404
         return jsonify(book=dict(row))
 
     @app.post('/api/users/<int:user_id>/books')
     def create_book(user_id):
-        data = request.get_json() or {}
-        if db().execute('SELECT id FROM users WHERE id = ?', (user_id,)).fetchone() is None:
+        if user_id != current_session()['id']:
             return jsonify(error='User not found.'), 404
-        # TODO: enforce ownership rather than trusting the URL user ID.
+        data = request.get_json() or {}
         cursor = db().execute(
             'INSERT INTO books (user_id, title, author, status, notes) VALUES (?, ?, ?, ?, ?)',
-            (user_id, data.get('title', ''), data.get('author', ''),
+            (current_session()['id'], data.get('title', ''), data.get('author', ''),
              data.get('status', 'To read'), data.get('notes', '')),
         )
         db().commit()
@@ -231,23 +239,26 @@ def create_app(database_path=None):
 
     @app.put('/api/books/<int:book_id>')
     def update_book(book_id):
-        # TODO: enforce book ownership here.
-        row = book_by_id(book_id)
+        row = owned_book(book_id)
         if row is None:
             return jsonify(error='Book not found.'), 404
         data = request.get_json() or {}
         db().execute(
-            'UPDATE books SET title = ?, author = ?, status = ?, notes = ? WHERE id = ?',
-            tuple(data.get(field, row[field]) for field in ('title', 'author', 'status', 'notes')) + (book_id,),
+            'UPDATE books SET title = ?, author = ?, status = ?, notes = ? WHERE id = ? AND user_id = ?',
+            tuple(data.get(field, row[field]) for field in ('title', 'author', 'status', 'notes'))
+            + (book_id, current_session()['id']),
         )
         db().commit()
-        return jsonify(book=dict(book_by_id(book_id)))
+        return jsonify(book=dict(owned_book(book_id)))
 
     @app.delete('/api/books/<int:book_id>')
     def delete_book(book_id):
-        if book_by_id(book_id) is None:
+        cursor = db().execute(
+            'DELETE FROM books WHERE id = ? AND user_id = ?',
+            (book_id, current_session()['id']),
+        )
+        if cursor.rowcount == 0:
             return jsonify(error='Book not found.'), 404
-        db().execute('DELETE FROM books WHERE id = ?', (book_id,))
         db().commit()
         return '', 204
 

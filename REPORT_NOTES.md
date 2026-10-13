@@ -182,9 +182,9 @@ Suggested evidence record:
 
 | Test ID | Version or commit | Preconditions | Request or action | Expected result | Actual result | Evidence path | Interpretation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| AUTHZ-01 | Pending | Doon owns a book; Otherdoon logged in | Otherdoon reads Doon's book ID | Hardened version denies access | Not run | Pending | Pending |
-| AUTHZ-02 | Pending | Same accounts and book | Otherdoon edits or deletes Doon's book | Denied; stored record unchanged | Not run | Pending | Pending |
-| AUTHZ-03 | Pending | Doon logged in | Doon updates her own book | Accepted | Not run | Pending | Pending |
+| AUTHZ-01 | Ownership working tree after `v0.1.1-auth-foundation` | Doon logged in; Otherdoon and admin have books | Read their profiles, lists, and book IDs | Cross-user requests denied | HTTP 404 for each; 9-test backend suite passed on 14 Oct 2026 | `tests/test_ownership.py` | A valid session alone does not grant access to another user's records |
+| AUTHZ-02 | Same working tree | Doon logged in; Otherdoon owns book 4 | Create under user 2; edit and delete book 4 | Denied; stored data unchanged | HTTP 404; book and row count unchanged | `tests/test_ownership.py` | Write authorization is checked on the server |
+| AUTHZ-03 | Same working tree | Otherdoon logged in | Read, create, update, and delete own books | Accepted | Reads and writes succeeded; deleted book then returned 404 | `tests/test_ownership.py` | Ownership checks preserve legitimate use |
 | SQL-01 | Pending | Seeded database | Submit injection-like input to a query endpoint | Input cannot change SQL structure | Not run | Pending | Pending |
 | LOGIN-01 | Pending | Known throttle policy | Repeated failed logins | Limit applied according to policy | Not run | Pending | Pending |
 | SESSION-01 | Pending | Valid session then logout | Replay old session | Authentication required | Not run | Pending | Pending |

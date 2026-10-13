@@ -1,4 +1,7 @@
 """Authentication and session checks for the secure-work branch."""
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parent.parent / 'backend'))
 
 import sqlite3
 import tempfile
@@ -8,14 +11,13 @@ from contextlib import closing
 from pathlib import Path
 
 from werkzeug.security import check_password_hash
-
 from backend.app import create_app, reset_database
 
 
 PASSWORDS = {
-    'doon': 'Doon-test-password-2026',
-    'otherdoon': 'Otherdoon-test-password-2026',
-    'admin': 'Admin-test-password-2026',
+    'doon': 'doon123456789',
+    'otherdoon': 'otherdoon1234',
+    'admin': 'admin12345678',
 }
 
 
@@ -93,13 +95,15 @@ class AuthenticationTests(unittest.TestCase):
 
     def test_search_cannot_execute_sql_or_read_auth_tables(self):
         self.login()
-        before = self.client.get('/api/books/4').json['book']['notes']
+        with closing(sqlite3.connect(self.database)) as db:
+            before = db.execute('SELECT notes FROM books WHERE id = 4').fetchone()[0]
         for query in ('SELECT * FROM users', "' OR 1=1 -- ",
                       "UPDATE books SET notes = 'changed' WHERE id = 4"):
             response = self.client.get('/api/users/1/books', query_string={'q': query})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['books'], [])
-        self.assertEqual(self.client.get('/api/books/4').json['book']['notes'], before)
+        with closing(sqlite3.connect(self.database)) as db:
+            self.assertEqual(db.execute('SELECT notes FROM books WHERE id = 4').fetchone()[0], before)
 
     def test_expired_session_and_admin_role(self):
         self.login()

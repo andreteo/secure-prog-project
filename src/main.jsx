@@ -161,7 +161,6 @@ function Library({ userId, admin = false }) {
     async function load() {
       try {
         const options = { signal: controller.signal };
-        // V04: /admin loads returned API records straight into state. No role gate.
         const [profile, result] = await Promise.all([
           admin ? Promise.resolve(null) : api(`/api/users/${userId}`, options),
           api(admin ? '/api/admin/books' : `/api/users/${userId}/books?q=${encodeURIComponent(appliedQuery)}`, options),

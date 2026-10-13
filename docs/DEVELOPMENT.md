@@ -1,6 +1,6 @@
 # Local development on the secure-work branch
 
-The tagged `v0.1.0-insecure` revision preserves the original baseline and its demonstration instructions. This branch is **partway through hardening**: password authentication, server-side sessions, API sign-in checks, an admin role check, request tokens for writes, parameterized search, and plain-text note rendering are implemented. Book ownership, login throttling, and HTTPS are still pending. Do not deploy this intermediate version.
+The tagged `v0.1.0-insecure` revision preserves the original baseline and its demonstration instructions. The `v0.1.1-auth-foundation` tag captures the intermediate version before ownership checks. This branch is **partway through hardening**: password authentication, server-side sessions, API sign-in checks, an admin role check, book ownership, request tokens for writes, parameterized search, and plain-text note rendering are implemented. Login throttling and HTTPS are still pending. Do not deploy this intermediate version.
 
 ## Initialize local demo accounts
 
@@ -32,11 +32,13 @@ The browser sends an opaque, HttpOnly, SameSite=Lax cookie. The server stores on
 
 ## Verify
 
+Run these commands from the project root (`secure_programming_project`), not from `tests/`. If your terminal is currently in `tests/`, run `cd ..` first. The tests import `backend.app` as a project package.
+
 ```sh
-.venv/bin/python -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 pnpm build
 ```
 
 The backend suite uses a disposable database and does not alter the local demo accounts. The optional browser check is `tests/browser.cjs`; it expects `BASE_URL` and `DEMO_PASSWORD` for Doon's account. It creates and removes one temporary book. The earlier baseline browser/test scripts are preserved by the `v0.1.0-insecure` tag.
 
-Authentication alone does not establish resource ownership. Until the next hardening step, a signed-in user can still select another user ID in a URL. Do not describe this intermediate branch as a completed secure application.
+Personal API routes now require the URL user ID or book owner to match the authenticated user. Cross-user requests return 404, including reads, creation, updates, and deletion; the separate administrator overview still requires the admin role. The ownership suite checks that rejected writes leave stored records unchanged and that legitimate owner operations continue to work. Do not describe this intermediate branch as a completed secure application while login throttling and HTTPS remain pending.

@@ -32,6 +32,13 @@ const assert = require('node:assert/strict');
     assert.equal(await page.getByLabel('Password', { exact: true }).count(), 0);
     console.log('PASS session restores after reload without localStorage identity');
 
+    await page.goto(base + '/users/3/dashboard');
+    await page.getByRole('alert').getByText('User not found.').waitFor();
+    assert.equal(await page.getByText('Admin private note:', { exact: false }).count(), 0);
+    await page.getByRole('link', { name: 'My library' }).click();
+    await page.getByRole('heading', { name: 'Doon’s library' }).waitFor();
+    console.log('PASS URL change cannot show another user’s books');
+
     await page.getByRole('button', { name: '+ Add book', exact: true }).click();
     await page.getByLabel('Title', { exact: true }).fill('Authentication browser check');
     await page.getByLabel('Author', { exact: true }).fill('Test');
