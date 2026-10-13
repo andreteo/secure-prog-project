@@ -20,6 +20,11 @@ SESSION_COOKIE = 'bookledger_session'
 SESSION_LIFETIME = 60 * 60
 LOGIN_LIMIT = '5 per minute'
 LOGIN_ERROR = 'Username or password does not exist.'
+BOOK_FIELDS = {'title', 'author', 'status', 'notes'}
+BOOK_STATUSES = {'To read', 'Reading', 'Finished'}
+MAX_TITLE_LENGTH = 200
+MAX_AUTHOR_LENGTH = 200
+MAX_NOTES_LENGTH = 2000
 DUMMY_PASSWORD_HASH = generate_password_hash('dummy-password-for-timing')
 BOOK_SELECT = '''SELECT b.id, b.user_id, u.username, u.display_name,
     b.title, b.author, b.status, b.notes
@@ -89,6 +94,7 @@ def reset_database(path, passwords):
 def create_app(database_path=None, login_limit=LOGIN_LIMIT):
     app = Flask(__name__, static_folder=None)
     app.config['DATABASE'] = str(database_path or DEFAULT_DB)
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
     if not Path(app.config['DATABASE']).exists():
         raise RuntimeError('Secure database is missing. Run: python -m backend.app --init-db')
 
@@ -124,6 +130,29 @@ def create_app(database_path=None, login_limit=LOGIN_LIMIT):
             BOOK_SELECT + ' WHERE b.id = ? AND b.user_id = ?',
             (book_id, current_session()['id']),
         ).fetchone()
+
+    def validated_book_fields(existing=None):
+        incoming = request.get_json(silent=True)
+        if not isinstance(incoming, dict):
+            return None, 'Send book details as a JSON object.'
+        if set(incoming) - BOOK_FIELDS:
+            return None, 'Unexpected book field.'
+        values = {
+            'title': incoming.get('title', existing['title'] if existing else ''),
+            'author': incoming.get('author', existing['author'] if existing else ''),
+            'status': incoming.get('status', existing['status'] if existing else 'To read'),
+            'notes': incoming.get('notes', existing['notes'] if existing else ''),
+        }
+        for field, limit in (('title', MAX_TITLE_LENGTH), ('author', MAX_AUTHOR_LENGTH)):
+            value = values[field]
+            if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit:
+                return None, f'{field.capitalize()} must contain 1–{limit} characters.'
+            values[field] = value.strip()
+        if not isinstance(values['status'], str) or values['status'] not in BOOK_STATUSES:
+            return None, 'Choose a valid reading status.'
+        if not isinstance(values['notes'], str) or len(values['notes']) > MAX_NOTES_LENGTH:
+            return None, f'Notes must contain at most {MAX_NOTES_LENGTH} characters.'
+        return values, None
 
     def public_user(row):
         return {key: row[key] for key in ('id', 'username', 'display_name', 'role')}
@@ -163,6 +192,10 @@ def create_app(database_path=None, login_limit=LOGIN_LIMIT):
         if request.path.startswith('/api/'):
             response.headers['Cache-Control'] = 'no-store'
         return response
+
+    @app.errorhandler(413)
+    def request_too_large(_error):
+        return jsonify(error='Request body is too large.'), 413
 
     @app.get('/api/health')
     def health():
@@ -244,11 +277,12 @@ def create_app(database_path=None, login_limit=LOGIN_LIMIT):
     def create_book(user_id):
         if user_id != current_session()['id']:
             return jsonify(error='User not found.'), 404
-        data = request.get_json() or {}
+        data, error = validated_book_fields()
+        if error:
+            return jsonify(error=error), 400
         cursor = db().execute(
             'INSERT INTO books (user_id, title, author, status, notes) VALUES (?, ?, ?, ?, ?)',
-            (current_session()['id'], data.get('title', ''), data.get('author', ''),
-             data.get('status', 'To read'), data.get('notes', '')),
+            (current_session()['id'], *(data[field] for field in ('title', 'author', 'status', 'notes'))),
         )
         db().commit()
         return jsonify(book=dict(book_by_id(cursor.lastrowid))), 201
@@ -258,10 +292,12 @@ def create_app(database_path=None, login_limit=LOGIN_LIMIT):
         row = owned_book(book_id)
         if row is None:
             return jsonify(error='Book not found.'), 404
-        data = request.get_json() or {}
+        data, error = validated_book_fields(row)
+        if error:
+            return jsonify(error=error), 400
         db().execute(
             'UPDATE books SET title = ?, author = ?, status = ?, notes = ? WHERE id = ? AND user_id = ?',
-            tuple(data.get(field, row[field]) for field in ('title', 'author', 'status', 'notes'))
+            tuple(data[field] for field in ('title', 'author', 'status', 'notes'))
             + (book_id, current_session()['id']),
         )
         db().commit()

@@ -1,6 +1,6 @@
 # Local development on the secure-work branch
 
-The tagged `v0.1.0-insecure` revision preserves the original baseline and its demonstration instructions. The `v0.1.1-auth-foundation` tag captures the intermediate version before ownership checks. This branch is **partway through hardening**: password authentication, server-side sessions, API sign-in checks, an admin role check, book ownership, request tokens for writes, parameterized search, plain-text note rendering, and login throttling are implemented. HTTPS and full field validation are still pending. Do not deploy this intermediate version.
+The tagged `v0.1.0-insecure` revision preserves the original baseline and its demonstration instructions. The `v0.1.1-auth-foundation` tag captures the intermediate version before ownership checks. This branch is **partway through hardening**: password authentication, server-side sessions, API sign-in checks, an admin role check, book ownership, request tokens for writes, parameterized search, plain-text note rendering, login throttling, and book-field validation are implemented. HTTPS and production host configuration are still pending. Do not deploy this intermediate version.
 
 ## Initialize local demo accounts
 
@@ -42,6 +42,20 @@ The browser sends an opaque, HttpOnly, SameSite=Lax cookie. The server stores on
 
 For a report screenshot, restart the local Flask server to clear the demonstration counter, submit five incorrect passwords from the same browser, then capture the sixth login request showing HTTP 429 and `Retry-After` in Network. Keep session cookies and request tokens out of shared screenshots.
 
+## Book-field validation
+
+The backend requires a JSON object for book creation and updates. Title and author must each be nonblank strings of at most 200 characters; status must be `To read`, `Reading`, or `Finished`; notes must be a string of at most 2,000 characters. Create defaults omitted status to `To read` and omitted notes to empty text. Updates can supply only the fields being changed. Unexpected fields, including a client-supplied `user_id`, are rejected. Malformed or invalid book data returns HTTP 400; request bodies above 16 KiB return HTTP 413. The React form sends only editable fields and mirrors the length limits, but the backend applies the checks to direct API requests as well. Tests verify rejected requests leave the SQLite rows unchanged.
+
+For a presentation-friendly direct API demonstration, run this from the project root:
+
+```sh
+python scripts/demo_validation.py
+```
+
+`python -m scripts.demo_validation` works too.
+
+The script creates a temporary SQLite database, signs in with a dummy account, sends requests with a valid CSRF token, and prints each response alongside whether rejected requests changed the data. It also shows a valid book creation succeeding. It does not contact the running development server or alter your local demo library. Screenshot the terminal output and cite `scripts/demo_validation.py` and `tests/test_validation.py` in the report; the frontend's HTML field limits alone are not evidence of server validation.
+
 ## Verify
 
 Run these commands from the project root (`secure_programming_project`), not from `tests/`. If your terminal is currently in `tests/`, run `cd ..` first. The tests import `backend.app` as a project package.
@@ -53,4 +67,4 @@ pnpm build
 
 The backend suite uses a disposable database and does not alter the local demo accounts. The optional browser check is `tests/browser.cjs`; it expects `BASE_URL` and `DEMO_PASSWORD` for Doon's account. It creates and removes one temporary book. The earlier baseline browser/test scripts are preserved by the `v0.1.0-insecure` tag.
 
-Personal API routes now require the URL user ID or book owner to match the authenticated user. Cross-user requests return 404, including reads, creation, updates, and deletion; the separate administrator overview still requires the admin role. The ownership suite checks that rejected writes leave stored records unchanged and that legitimate owner operations continue to work. Do not describe this intermediate branch as a completed secure application while HTTPS and full field validation remain pending.
+Personal API routes now require the URL user ID or book owner to match the authenticated user. Cross-user requests return 404, including reads, creation, updates, and deletion; the separate administrator overview still requires the admin role. The ownership suite checks that rejected writes leave stored records unchanged and that legitimate owner operations continue to work. Do not describe this intermediate branch as a completed secure application while HTTPS and production host configuration remain pending.

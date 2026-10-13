@@ -241,8 +241,9 @@ function BookEditor({ book, userId, onCancel, onSaved }) {
   async function save(e) {
     e.preventDefault(); setBusy(true); setError('');
     try {
+      const payload = { title: form.title, author: form.author, status: form.status, notes: form.notes };
       const result = await api(book.id ? `/api/books/${book.id}` : `/api/users/${userId}/books`, {
-        method: book.id ? 'PUT' : 'POST', body: JSON.stringify(form),
+        method: book.id ? 'PUT' : 'POST', body: JSON.stringify(payload),
       });
       onSaved(result.book);
     } catch (err) { setError(err.message); }
@@ -250,10 +251,10 @@ function BookEditor({ book, userId, onCancel, onSaved }) {
   }
   return <form className="editor panel" onSubmit={save} aria-label={book.id ? 'Edit book' : 'Add book'}>
     <h2>{book.id ? 'Edit book' : 'Add a book'}</h2>
-    <div className="form-row"><div><label htmlFor="title">Title</label><input id="title" name="title" value={form.title} onChange={change} required autoFocus /></div>
-      <div><label htmlFor="author">Author</label><input id="author" name="author" value={form.author} onChange={change} required /></div>
+    <div className="form-row"><div><label htmlFor="title">Title</label><input id="title" name="title" value={form.title} onChange={change} maxLength={200} required autoFocus /></div>
+      <div><label htmlFor="author">Author</label><input id="author" name="author" value={form.author} onChange={change} maxLength={200} required /></div>
       <div><label htmlFor="status">Reading status</label><select id="status" name="status" value={form.status} onChange={change}>{STATUSES.map(status => <option key={status}>{status}</option>)}</select></div></div>
-    <label htmlFor="notes">Private notes</label><textarea id="notes" name="notes" rows="3" value={form.notes} onChange={change} placeholder="What would you like to remember?" />
+    <label htmlFor="notes">Private notes</label><textarea id="notes" name="notes" rows="3" value={form.notes} onChange={change} maxLength={2000} placeholder="What would you like to remember?" />
     {error && <p className="error" role="alert">{error}</p>}
     <div className="form-actions"><button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save book'}</button><button type="button" disabled={busy} className="secondary" onClick={onCancel}>Cancel</button></div>
   </form>;

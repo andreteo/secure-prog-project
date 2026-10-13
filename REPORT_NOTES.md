@@ -2,11 +2,11 @@
 
 Working notes for the 600IT Secure Programming coursework. This is planning material, not a finished report or evidence that the system is secure. Update it as design decisions, implementation changes, and test results become available.
 
-Last updated: 13 October 2026.
+Last updated: 14 October 2026.
 
 ## Current status
 
-- The `v0.1.0-insecure` Git tag freezes the baseline. The `v0.1.1-secure` working branch now has password hashing, opaque SQLite-backed sessions, session restore/logout, an admin role check, request-token checks for writes, parameterized search, and plain-text note rendering. This is an intermediate implementation: cross-user ownership checks, login throttling, and verified HTTPS remain outstanding.
+- The `v0.1.0-insecure` tag freezes the baseline; `v0.1.1-auth-foundation`, `v0.1.2-ownership`, and `v0.1.3-login-throttle` mark subsequent checkpoints. The current working tree also implements book-field validation. Authentication, ownership, parameterized search, plain-text note rendering, CSRF checks, and login throttling have focused tests. Verified HTTPS and production host configuration remain outstanding.
 - Authentication report point: unknown usernames and wrong passwords now receive the same HTTP 401 and `Username or password does not exist.` response. The baseline named a missing username. The generic response reduces direct account-enumeration clues; it does not replace rate limiting, and the public demo-account hint means these particular usernames are intentionally disclosed.
 - The assessment brief has been read, including its marking criteria.
 - The proposed project is a small personal ebook reading tracker with separate private libraries for multiple users.
@@ -15,7 +15,7 @@ Last updated: 13 October 2026.
 - For a readable presentation, the baseline search executes client-entered `SELECT * FROM books` and `UPDATE books SET notes = 'Changed through SQL' WHERE id = 4`. These are direct execution of client-supplied SQL, distinct from the original search SQL injection using `' OR 1=1 -- `. Label each screenshot accordingly.
 - The frontend build, 10 backend baseline checks, and 10 browser checks passed. Browser checks verified login, persistent create/edit/delete operations, ordinary search, cross-user dashboard access, admin access with and without pseudo-login, SQL injection, harmless stored-script execution, mobile layout, and absence of uncaught JavaScript errors. The browser checks ran against the Vite development site on port 5173, with API requests proxied to Flask. These passing checks characterize the deliberately insecure baseline.
 - Flask debug mode and Vite live refresh are available for local development; see [development instructions](docs/DEVELOPMENT.md).
-- The hardened version and its security controls remain proposed. Earlier diagrams are design illustrations and need updating to include the baseline pseudo-login and admin page.
+- The hardened version is partly implemented, with 15 passing backend tests and a validation demo against disposable data. The Excalidraw pair remains conceptual and needs to match the final implementation, including the baseline pseudo-login and admin page.
 
 ## Requirements from the assessment brief
 
@@ -185,7 +185,8 @@ Suggested evidence record:
 | AUTHZ-01 | Ownership working tree after `v0.1.1-auth-foundation` | Doon logged in; Otherdoon and admin have books | Read their profiles, lists, and book IDs | Cross-user requests denied | HTTP 404 for each; 9-test backend suite passed on 14 Oct 2026 | `tests/test_ownership.py` | A valid session alone does not grant access to another user's records |
 | AUTHZ-02 | Same working tree | Doon logged in; Otherdoon owns book 4 | Create under user 2; edit and delete book 4 | Denied; stored data unchanged | HTTP 404; book and row count unchanged | `tests/test_ownership.py` | Write authorization is checked on the server |
 | AUTHZ-03 | Same working tree | Otherdoon logged in | Read, create, update, and delete own books | Accepted | Reads and writes succeeded; deleted book then returned 404 | `tests/test_ownership.py` | Ownership checks preserve legitimate use |
-| SQL-01 | Pending | Seeded database | Submit injection-like input to a query endpoint | Input cannot change SQL structure | Not run | Pending | Pending |
+| SQL-01 | Authentication-and-later working tree | Doon signed in; seeded database | Submit `SELECT`, `UPDATE`, and quote-based input as title searches | Input cannot change SQL structure or another user's notes | Empty search results; Otherdoon's note unchanged | `tests/test_auth.py` | Bound parameters keep the search string as data |
+| VALID-01 | Book-validation working tree | Doon signed in; seeded books | Send malformed JSON, invalid fields, oversized notes, and a 20 KiB body | Reject without changing books | HTTP 400 or 413; database rows and count unchanged; 15-test backend suite passed on 14 Oct 2026 | `tests/test_validation.py` | Server-side validation applies to direct API requests as well as the form |
 | LOGIN-01 | Login-throttling working tree | Five login requests from one IP | Sixth request, then retry after the window | HTTP 429 with retry guidance, then login available | 429 with `Retry-After`; valid login succeeds after a short test window; 11-test backend suite passed on 14 Oct 2026 | `tests/test_rate_limit.py` | Per-IP, in-memory throttling slows repeated login requests but does not establish DDoS resilience |
 | SESSION-01 | Pending | Valid session then logout | Replay old session | Authentication required | Not run | Pending | Pending |
 | CSRF-01 | Pending | Logged-in browser session | State-changing request without valid CSRF token | Rejected; data unchanged | Not run | Pending | Pending |
