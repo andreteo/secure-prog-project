@@ -91,10 +91,13 @@ def reset_database(path, passwords):
         )
 
 
-def create_app(database_path=None, login_limit=LOGIN_LIMIT):
+def create_app(database_path=None, login_limit=LOGIN_LIMIT, require_https=False):
     app = Flask(__name__, static_folder=None)
     app.config['DATABASE'] = str(database_path or DEFAULT_DB)
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
+    app.config['REQUIRE_HTTPS'] = require_https
+    if require_https:
+        app.config['TRUSTED_HOSTS'] = ['127.0.0.1', 'localhost']
     if not Path(app.config['DATABASE']).exists():
         raise RuntimeError('Secure database is missing. Run: python -m backend.app --init-db')
 
@@ -174,6 +177,8 @@ def create_app(database_path=None, login_limit=LOGIN_LIMIT):
 
     @app.before_request
     def guard_api():
+        if app.config['REQUIRE_HTTPS'] and not request.is_secure:
+            return jsonify(error='HTTPS is required.'), 403
         if not request.path.startswith('/api/') or request.path in {'/api/login', '/api/session', '/api/health'}:
             return None
         session = current_session()
@@ -339,7 +344,13 @@ if __name__ == '__main__':
     parser.add_argument('--init-db', action='store_true', help='Initialize or reset the secure demo DB and prompt for passwords.')
     parser.add_argument('--port', type=int, default=5001)
     parser.add_argument('--debug', action='store_true', help='Enable local debug mode and reload on Python changes.')
+    parser.add_argument('--cert', type=Path, help='Local HTTPS certificate (PEM). Requires --key.')
+    parser.add_argument('--key', type=Path, help='Local HTTPS private key (PEM). Requires --cert.')
     args = parser.parse_args()
+    if bool(args.cert) != bool(args.key):
+        parser.error('--cert and --key must be supplied together')
+    if args.cert and args.debug:
+        parser.error('HTTPS demonstration mode cannot run with --debug')
     if args.init_db:
         passwords = {}
         for username in ('doon', 'otherdoon', 'admin'):
@@ -353,5 +364,9 @@ if __name__ == '__main__':
         reset_database(DEFAULT_DB, passwords)
         print(f'Initialized secure demo data in {DEFAULT_DB}')
     else:
-        # HTTPS and production host configuration are a later hardening step.
-        create_app().run(host='127.0.0.1', port=args.port, debug=args.debug)
+        if args.cert and (not args.cert.is_file() or not args.key.is_file()):
+            parser.error('certificate and key files must exist')
+        ssl_context = (str(args.cert), str(args.key)) if args.cert else None
+        create_app(require_https=bool(ssl_context)).run(
+            host='127.0.0.1', port=args.port, debug=args.debug, ssl_context=ssl_context,
+        )

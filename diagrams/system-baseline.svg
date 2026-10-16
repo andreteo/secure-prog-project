@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1645 1099.5" role="img" aria-label="Book Ledger report diagram">
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M1,1 L8,4.5 L1,8" fill="none" stroke="#334155" stroke-width="1.7"/></marker></defs>
+<rect width="1645" height="1099.5" fill="#ffffff"/>
+<text x="60" y="62.0" fill="#9a3412" font-size="20" font-family="Arial, Helvetica, sans-serif">EBOOK TRACKER  /  01  INSECURE BASELINE</text>
+<text x="60" y="119.0" fill="#0f172a" font-size="34" font-family="Arial, Helvetica, sans-serif">Same application. No deliberate security controls.</text>
+<text x="60" y="162.0" fill="#334155" font-size="20" font-family="Arial, Helvetica, sans-serif">Observed local baseline — intentionally insecure; dummy data only.</text>
+<rect x="465" y="212" width="1115" height="315" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="487" y="241.0" fill="#64748b" font-size="17" font-family="Arial, Helvetica, sans-serif">APPLICATION HOST  /  deployment boundary</text>
+<rect x="60" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="80" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">React browser</text>
+<text x="80" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Book list and forms</text>
+<text x="80" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">User ID supplied by client</text>
+<text x="80" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Notes rendered as HTML</text>
+<rect x="500" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="520" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">Vite server</text>
+<text x="520" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">HTTP on port 5173</text>
+<text x="520" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Serves React; proxies API</text>
+<text x="520" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">No TLS</text>
+<rect x="900" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="920" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">Flask API</text>
+<text x="920" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Username-only login</text>
+<text x="920" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Trusts URL user ID</text>
+<text x="920" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Unsafe SQL; no limits</text>
+<rect x="1300" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1320" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">SQLite</text>
+<text x="1320" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Users + books</text>
+<text x="1320" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Client-selected owner IDs</text>
+<text x="1320" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Default file permissions</text>
+<line x1="344" y1="353" x2="486" y2="353" stroke="#334155" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="335" y="478.0" fill="#334155" font-size="17" font-family="Arial, Helvetica, sans-serif">HTTP + user ID</text>
+<line x1="784" y1="353" x2="886" y2="353" stroke="#334155" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="775" y="478.0" fill="#334155" font-size="17" font-family="Arial, Helvetica, sans-serif">Local HTTP</text>
+<line x1="1184" y1="353" x2="1286" y2="353" stroke="#334155" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="1175" y="478.0" fill="#334155" font-size="17" font-family="Arial, Helvetica, sans-serif">Raw SQL</text>
+<text x="60" y="569.0" fill="#9a3412" font-size="19" font-family="Arial, Helvetica, sans-serif">CLIENT CLAIMS ARE TRUSTED</text>
+<text x="60" y="609.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Two-way arrows indicate requests and responses. SQLite is accessed locally by the API.</text>
+<rect x="60" y="650" width="495" height="156" rx="10" fill="#fff7ed" stroke="#cbd5e1" stroke-width="2"/>
+<text x="78" y="690.0" fill="#9a3412" font-size="22" font-family="Arial, Helvetica, sans-serif">01  No authentication or sessions</text>
+<text x="78" y="727.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Known username accepted without password.</text>
+<text x="78" y="749.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">No server session is created.</text>
+<text x="78" y="772.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">URL ID selects a user&#x27;s dashboard.</text>
+<rect x="575" y="650" width="495" height="156" rx="10" fill="#fff7ed" stroke="#cbd5e1" stroke-width="2"/>
+<text x="593" y="690.0" fill="#9a3412" font-size="22" font-family="Arial, Helvetica, sans-serif">02  No authorization or CSRF checks</text>
+<text x="593" y="727.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Admin API accepts anonymous requests.</text>
+<text x="593" y="749.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Book routes trust client IDs.</text>
+<text x="593" y="772.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Writes lack CSRF validation.</text>
+<rect x="1090" y="650" width="495" height="156" rx="10" fill="#fff7ed" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1108" y="690.0" fill="#9a3412" font-size="22" font-family="Arial, Helvetica, sans-serif">03  Unsafe input and output</text>
+<text x="1108" y="727.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Search builds SQL from input.</text>
+<text x="1108" y="749.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Direct SELECT/UPDATE also accepted.</text>
+<text x="1108" y="772.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Notes inserted as HTML.</text>
+<rect x="60" y="830" width="495" height="156" rx="10" fill="#fff7ed" stroke="#cbd5e1" stroke-width="2"/>
+<text x="78" y="870.0" fill="#9a3412" font-size="22" font-family="Arial, Helvetica, sans-serif">04  No rate limiting</text>
+<text x="78" y="907.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Login has no attempt limit.</text>
+<text x="78" y="929.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Repeated unknown-user requests reach API.</text>
+<text x="78" y="952.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">No throttling or backoff.</text>
+<rect x="575" y="830" width="495" height="156" rx="10" fill="#fff7ed" stroke="#cbd5e1" stroke-width="2"/>
+<text x="593" y="870.0" fill="#9a3412" font-size="22" font-family="Arial, Helvetica, sans-serif">05  Plaintext communications</text>
+<text x="593" y="907.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Browser uses HTTP via Vite.</text>
+<text x="593" y="929.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Credentials absent in this baseline.</text>
+<text x="593" y="952.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Private notes travel unencrypted.</text>
+<rect x="1090" y="830" width="495" height="156" rx="10" fill="#fff7ed" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1108" y="870.0" fill="#9a3412" font-size="22" font-family="Arial, Helvetica, sans-serif">06  No deliberate host hardening</text>
+<text x="1108" y="907.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Flask debug can be enabled locally.</text>
+<text x="1108" y="929.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Database uses default permissions.</text>
+<text x="1108" y="952.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">No deployment hardening.</text>
+<text x="60" y="1050.0" fill="#64748b" font-size="18" font-family="Arial, Helvetica, sans-serif">REPORT FIGURE  /  Observed baseline; no deliberate app controls. Framework defaults still apply.</text>
+</svg>

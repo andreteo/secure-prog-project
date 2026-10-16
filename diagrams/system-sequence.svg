@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1635 2732.5" role="img" aria-label="Book Ledger report diagram">
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M1,1 L8,4.5 L1,8" fill="none" stroke="#334155" stroke-width="1.7"/></marker></defs>
+<rect width="1635" height="2732.5" fill="#ffffff"/>
+<rect x="60" y="205" width="1515" height="685" rx="10" fill="#f0fdf4" stroke="#e2e8f0" stroke-width="2"/>
+<text x="82" y="237.0" fill="#166534" font-size="20" font-family="Arial, Helvetica, sans-serif">01  OPEN, SIGN IN AND ESTABLISH A SESSION</text>
+<rect x="60" y="910" width="1515" height="590" rx="10" fill="#eff6ff" stroke="#e2e8f0" stroke-width="2"/>
+<text x="82" y="942.0" fill="#166534" font-size="20" font-family="Arial, Helvetica, sans-serif">02  LOAD AND SEARCH A PERSONAL LIBRARY</text>
+<rect x="60" y="1520" width="1515" height="390" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+<text x="82" y="1552.0" fill="#166534" font-size="20" font-family="Arial, Helvetica, sans-serif">03  CHANGE A BOOK WITH SERVER CHECKS</text>
+<rect x="60" y="1930" width="1515" height="340" rx="10" fill="#fff7ed" stroke="#e2e8f0" stroke-width="2"/>
+<text x="82" y="1962.0" fill="#166534" font-size="20" font-family="Arial, Helvetica, sans-serif">04  REJECT UNAUTHORIZED REQUESTS</text>
+<rect x="60" y="2290" width="1515" height="345" rx="10" fill="#f0fdf4" stroke="#e2e8f0" stroke-width="2"/>
+<text x="82" y="2322.0" fill="#166534" font-size="20" font-family="Arial, Helvetica, sans-serif">05  SIGN OUT</text>
+<line x1="150" y1="185" x2="150" y2="2650" stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6"/>
+<line x1="480" y1="185" x2="480" y2="2650" stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6"/>
+<line x1="990" y1="185" x2="990" y2="2650" stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6"/>
+<line x1="1430" y1="185" x2="1430" y2="2650" stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="60" y="64.0" fill="#166534" font-size="26" font-family="Arial, Helvetica, sans-serif">BOOK LEDGER  /  SECURED USER-INTERACTION SEQUENCE</text>
+<text x="60" y="103.0" fill="#243449" font-size="20" font-family="Arial, Helvetica, sans-serif">HTTPS browser flow; server decisions are based on the session, not the URL.</text>
+<text x="60" y="141.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">Solid arrows are requests or responses. Dashed vertical lines are participants.</text>
+<rect x="60.0" y="150" width="180" height="54" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<text x="78.0" y="183.0" fill="#243449" font-size="23" font-family="Arial, Helvetica, sans-serif">Reader</text>
+<rect x="390.0" y="150" width="180" height="54" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<text x="408.0" y="183.0" fill="#243449" font-size="23" font-family="Arial, Helvetica, sans-serif">React UI</text>
+<rect x="895.0" y="150" width="190" height="54" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<text x="913.0" y="183.0" fill="#243449" font-size="23" font-family="Arial, Helvetica, sans-serif">Flask API</text>
+<rect x="1340.0" y="150" width="180" height="54" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<text x="1358.0" y="183.0" fill="#243449" font-size="23" font-family="Arial, Helvetica, sans-serif">SQLite</text>
+<line x1="162" y1="275" x2="468" y2="275" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="174" y="266.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Open application</text>
+<line x1="492" y1="335" x2="978" y2="335" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="326.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">GET /api/session; cookie if present</text>
+<line x1="1002" y1="395" x2="1418" y2="395" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="386.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Look up token digest and expiry</text>
+<line x1="1002" y1="455" x2="1418" y2="455" stroke="#64748b" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="1014" y="446.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">No active session</text>
+<line x1="492" y1="515" x2="978" y2="515" stroke="#64748b" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="506.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">401; display sign-in</text>
+<line x1="162" y1="575" x2="468" y2="575" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="174" y="566.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Submit username and password</text>
+<line x1="492" y1="635" x2="978" y2="635" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="626.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">POST /api/login; rate limit applies</text>
+<line x1="1002" y1="695" x2="1418" y2="695" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="686.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Read user hash; verify password</text>
+<line x1="1002" y1="755" x2="1418" y2="755" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="746.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Store new token digest, expiry and CSRF</text>
+<line x1="492" y1="815" x2="978" y2="815" stroke="#166534" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="806.0" fill="#166534" font-size="16" font-family="Arial, Helvetica, sans-serif">200; session cookie + CSRF token</text>
+<text x="83" y="870.0" fill="#92400e" font-size="16" font-family="Arial, Helvetica, sans-serif">Alternate login result: generic 401 for bad credentials; 429 after five requests/minute/IP.</text>
+<line x1="492" y1="980" x2="978" y2="980" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="971.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">GET /api/users/1 and /books; cookie</text>
+<line x1="1002" y1="1040" x2="1418" y2="1040" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="1031.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Validate session; owner-bound SELECT</text>
+<line x1="1002" y1="1100" x2="1418" y2="1100" stroke="#64748b" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="1014" y="1091.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">Doon&#x27;s profile and book rows</text>
+<line x1="492" y1="1160" x2="978" y2="1160" stroke="#166534" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="1151.0" fill="#166534" font-size="16" font-family="Arial, Helvetica, sans-serif">200; render notes as text</text>
+<line x1="162" y1="1220" x2="468" y2="1220" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="174" y="1211.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Search a book title</text>
+<line x1="492" y1="1280" x2="978" y2="1280" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="1271.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">GET /books?q=...</text>
+<line x1="1002" y1="1340" x2="1418" y2="1340" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="1331.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Bind owner ID and title term</text>
+<line x1="1002" y1="1400" x2="1418" y2="1400" stroke="#64748b" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="1014" y="1391.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">Matching own books</text>
+<line x1="492" y1="1460" x2="978" y2="1460" stroke="#166534" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="1451.0" fill="#166534" font-size="16" font-family="Arial, Helvetica, sans-serif">200; filtered library</text>
+<line x1="162" y1="1590" x2="468" y2="1590" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="174" y="1581.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Add, edit or remove a book</text>
+<line x1="492" y1="1650" x2="978" y2="1650" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="1641.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">POST / PUT / DELETE; cookie + CSRF</text>
+<line x1="1002" y1="1710" x2="1418" y2="1710" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="1701.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Validate session and book owner</text>
+<line x1="1002" y1="1770" x2="1418" y2="1770" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="1761.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Allowlisted, owner-bound write</text>
+<line x1="1002" y1="1830" x2="1418" y2="1830" stroke="#64748b" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="1014" y="1821.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">Own row changed</text>
+<line x1="492" y1="1890" x2="978" y2="1890" stroke="#166534" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="1881.0" fill="#166534" font-size="16" font-family="Arial, Helvetica, sans-serif">201 / 200 / 204; refresh list</text>
+<line x1="162" y1="1995" x2="468" y2="1995" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="174" y="1986.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Change URL to another user&#x27;s ID</text>
+<line x1="492" y1="2055" x2="978" y2="2055" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="2046.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">GET /api/users/3/books; Doon cookie</text>
+<line x1="492" y1="2115" x2="978" y2="2115" stroke="#b42318" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="2106.0" fill="#b42318" font-size="16" font-family="Arial, Helvetica, sans-serif">404; no private rows returned</text>
+<line x1="492" y1="2175" x2="978" y2="2175" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="2166.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">GET /api/admin/books; Doon cookie</text>
+<line x1="492" y1="2235" x2="978" y2="2235" stroke="#b42318" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="2226.0" fill="#b42318" font-size="16" font-family="Arial, Helvetica, sans-serif">403; administrator role required</text>
+<text x="83" y="2266.0" fill="#92400e" font-size="16" font-family="Arial, Helvetica, sans-serif">Another rejected branch: a protected write without the CSRF header returns 403 before mutation.</text>
+<line x1="162" y1="2360" x2="468" y2="2360" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="174" y="2351.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Choose Sign out</text>
+<line x1="492" y1="2420" x2="978" y2="2420" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="504" y="2411.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">POST /api/logout; cookie + CSRF</text>
+<line x1="1002" y1="2480" x2="1418" y2="2480" stroke="#243449" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1014" y="2471.0" fill="#243449" font-size="16" font-family="Arial, Helvetica, sans-serif">Delete session digest</text>
+<line x1="1002" y1="2540" x2="1418" y2="2540" stroke="#64748b" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="1014" y="2531.0" fill="#64748b" font-size="16" font-family="Arial, Helvetica, sans-serif">Session removed</text>
+<line x1="492" y1="2600" x2="978" y2="2600" stroke="#166534" stroke-width="2" marker-start="url(#arrow)"/>
+<text x="504" y="2591.0" fill="#166534" font-size="16" font-family="Arial, Helvetica, sans-serif">200; clear cookie</text>
+<text x="60" y="2683.0" fill="#64748b" font-size="18" font-family="Arial, Helvetica, sans-serif">After logout or one-hour expiry, a protected API call receives 401 and the UI returns to sign-in.</text>
+</svg>

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1645 1099.5" role="img" aria-label="Book Ledger report diagram">
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M1,1 L8,4.5 L1,8" fill="none" stroke="#334155" stroke-width="1.7"/></marker></defs>
+<rect width="1645" height="1099.5" fill="#ffffff"/>
+<text x="60" y="62.0" fill="#166534" font-size="20" font-family="Arial, Helvetica, sans-serif">EBOOK TRACKER  /  02  SECURED DESIGN</text>
+<text x="60" y="119.0" fill="#0f172a" font-size="34" font-family="Arial, Helvetica, sans-serif">Same application. Security controls added.</text>
+<text x="60" y="162.0" fill="#334155" font-size="20" font-family="Arial, Helvetica, sans-serif">Implemented local demo; not a production deployment.</text>
+<rect x="465" y="212" width="1115" height="315" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="487" y="241.0" fill="#64748b" font-size="17" font-family="Arial, Helvetica, sans-serif">APPLICATION HOST  /  deployment boundary</text>
+<rect x="60" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="80" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">React browser</text>
+<text x="80" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Book list and forms</text>
+<text x="80" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Login / logout</text>
+<text x="80" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Notes rendered as text</text>
+<rect x="500" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="520" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">Flask server</text>
+<text x="520" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">TLS on port 5443</text>
+<text x="520" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Serves built React + API</text>
+<text x="520" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Debug disabled</text>
+<rect x="900" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="920" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">API routes</text>
+<text x="920" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Identity + owner/role</text>
+<text x="920" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Validation + CSRF</text>
+<text x="920" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">5/min/IP login limit</text>
+<rect x="1300" y="260" width="270" height="185" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1320" y="307.0" fill="#334155" font-size="25" font-family="Arial, Helvetica, sans-serif">SQLite</text>
+<text x="1320" y="348.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Users + salted hashes</text>
+<text x="1320" y="371.75" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Books + session digests</text>
+<text x="1320" y="395.5" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Outside served files</text>
+<line x1="344" y1="353" x2="486" y2="353" stroke="#334155" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="335" y="478.0" fill="#334155" font-size="17" font-family="Arial, Helvetica, sans-serif">HTTPS + cookie</text>
+<line x1="784" y1="353" x2="886" y2="353" stroke="#334155" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="775" y="478.0" fill="#334155" font-size="17" font-family="Arial, Helvetica, sans-serif">In-process</text>
+<line x1="1184" y1="353" x2="1286" y2="353" stroke="#334155" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="1175" y="478.0" fill="#334155" font-size="17" font-family="Arial, Helvetica, sans-serif">Bound SQL</text>
+<text x="60" y="569.0" fill="#166534" font-size="19" font-family="Arial, Helvetica, sans-serif">BROWSER INPUT IS UNTRUSTED</text>
+<text x="60" y="609.0" fill="#334155" font-size="19" font-family="Arial, Helvetica, sans-serif">Two-way arrows indicate requests and responses. SQLite is accessed locally by the API.</text>
+<rect x="60" y="650" width="495" height="156" rx="10" fill="#f0fdf4" stroke="#cbd5e1" stroke-width="2"/>
+<text x="78" y="690.0" fill="#166534" font-size="22" font-family="Arial, Helvetica, sans-serif">01  Identity and sessions</text>
+<text x="78" y="727.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Salted password hashes; 1h sessions.</text>
+<text x="78" y="749.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Rotate on login; delete on logout.</text>
+<text x="78" y="772.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">HttpOnly, Secure, SameSite=Lax cookie.</text>
+<rect x="575" y="650" width="495" height="156" rx="10" fill="#f0fdf4" stroke="#cbd5e1" stroke-width="2"/>
+<text x="593" y="690.0" fill="#166534" font-size="22" font-family="Arial, Helvetica, sans-serif">02  Ownership and request checks</text>
+<text x="593" y="727.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Owner checked on each book route.</text>
+<text x="593" y="749.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Admin role checked separately.</text>
+<text x="593" y="772.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">CSRF header required for writes.</text>
+<rect x="1090" y="650" width="495" height="156" rx="10" fill="#f0fdf4" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1108" y="690.0" fill="#166534" font-size="22" font-family="Arial, Helvetica, sans-serif">03  Safe input and output</text>
+<text x="1108" y="727.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Bound SQL + allowlisted fields.</text>
+<text x="1108" y="749.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Length/type limits on server.</text>
+<text x="1108" y="772.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Render notes as text.</text>
+<rect x="60" y="830" width="495" height="156" rx="10" fill="#f0fdf4" stroke="#cbd5e1" stroke-width="2"/>
+<text x="78" y="870.0" fill="#166534" font-size="22" font-family="Arial, Helvetica, sans-serif">04  Login throttling</text>
+<text x="78" y="907.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Five logins/minute/IP; 429 + Retry-After.</text>
+<text x="78" y="929.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">In-memory store resets on restart.</text>
+<text x="78" y="952.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Not DDoS or per-account protection.</text>
+<rect x="575" y="830" width="495" height="156" rx="10" fill="#f0fdf4" stroke="#cbd5e1" stroke-width="2"/>
+<text x="593" y="870.0" fill="#166534" font-size="22" font-family="Arial, Helvetica, sans-serif">05  Protected communications</text>
+<text x="593" y="907.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Local TLS with validated certificate.</text>
+<text x="593" y="929.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Built UI + API share HTTPS origin.</text>
+<text x="593" y="952.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Flask development server only.</text>
+<rect x="1090" y="830" width="495" height="156" rx="10" fill="#f0fdf4" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1108" y="870.0" fill="#166534" font-size="22" font-family="Arial, Helvetica, sans-serif">06  Host and configuration</text>
+<text x="1108" y="907.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">DB outside served dist directory.</text>
+<text x="1108" y="929.5" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">Debug off; Host restricted in TLS mode.</text>
+<text x="1108" y="952.0" fill="#334155" font-size="18" font-family="Arial, Helvetica, sans-serif">DB file perms not hardened.</text>
+<text x="60" y="1050.0" fill="#64748b" font-size="18" font-family="Arial, Helvetica, sans-serif">REPORT FIGURE  /  Observed local controls; production server, shared limiter and file perms remain.</text>
+</svg>

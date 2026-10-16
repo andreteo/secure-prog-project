@@ -71,6 +71,26 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/users/1/books').status_code, 200)
         self.assertEqual(self.client.get('/api/admin/books').status_code, 403)
 
+    def test_https_mode_requires_tls_and_sets_secure_cookie(self):
+        secure_app = create_app(self.database, require_https=True)
+        secure_app.config['TESTING'] = True
+        client = secure_app.test_client()
+        credentials = {'username': 'doon', 'password': PASSWORDS['doon']}
+        plaintext = client.post('/api/login', json=credentials)
+        self.assertEqual(plaintext.status_code, 403)
+        self.assertNotIn('Set-Cookie', plaintext.headers)
+        self.assertEqual(client.get('/').status_code, 403)
+        secure = client.post('/api/login', json=credentials,
+                             environ_overrides={'wsgi.url_scheme': 'https'})
+        self.assertEqual(secure.status_code, 200)
+        self.assertIn('Secure', secure.headers['Set-Cookie'])
+        self.assertIn('HttpOnly', secure.headers['Set-Cookie'])
+        self.assertEqual(client.get('/api/session', environ_overrides={
+            'wsgi.url_scheme': 'https',
+        }).status_code, 200)
+        self.assertEqual(client.get('/api/session').status_code, 403)
+        self.assertEqual(client.get('/api/session', base_url='https://evil.example').status_code, 400)
+
     def test_login_rotates_session_and_logout_invalidates_it(self):
         first = self.login()
         first_cookie = first.headers['Set-Cookie'].split(';', 1)[0]

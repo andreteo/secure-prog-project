@@ -119,6 +119,88 @@ The application shows the Administrator identity, and a direct request to `/api/
 
 ## Local HTTP limitation: cookie Secure flag is unset
 
-The local demonstration runs over HTTP, so the session cookie's `Secure` flag is unset. HTTPS and a `Secure` cookie remain deployment steps; this localhost screenshot does not establish how a production deployment would behave.
+This earlier Vite development screenshot runs over HTTP, so the session cookie's `Secure` flag is unset. The separate HTTPS presentation mode below should be used to show the protected cookie; neither localhost mode establishes production deployment security.
 
 ![[Pasted image 20261013234700.png]]
+
+
+## Before ownership checks (`v0.1.1-auth-foundation`): changing the dashboard URL selects another user
+
+While still signed in as Doon, changing the browser URL from `/users/1/dashboard` to `/users/3/dashboard` loads the Administrator's library. The first screenshot shows the changed URL and Doon's signed-in identity. The second shows an administrator-owned book and its private note on that page. Together, they demonstrate that a valid session is accepted for another user's records because the API trusts the user ID selected in the URL.
+
+![[Pasted image 20261014000056.png]]
+
+![[Pasted image 20261014000739.png]]
+
+
+
+## After ownership checks: Doon cannot open the Administrator's library
+
+While signed in as Doon (user ID 1), opening `/users/3/dashboard` no longer loads the Administrator's book or private note. The page displays “User not found,” and the Network panel shows HTTP 404 for both `/api/users/3` and `/api/users/3/books`. The second screenshot confirms the 404 response for `/api/users/3`; redact its session cookie value before including it in the report or repository.
+
+![[Pasted image 20261014002638.png]]
+
+![[Pasted image 20261014002743.png]]
+
+
+## Login throttling: repeated attempts lead to HTTP 429
+
+After repeated failed sign-in attempts, the login form shows “Too many login attempts. Try again later.” The selected Network request confirms that `POST /api/login` returned HTTP 429. The configured five-per-minute threshold and `Retry-After` response header are checked separately in `tests/test_rate_limit.py`; the header value is below the visible area of this screenshot.
+
+![[Pasted image 20261014004359.png]]
+
+## Book-field validation: direct API demonstration transcript
+
+The script signs in as Doon and sends requests with a valid CSRF token against a disposable SQLite database. Invalid fields, malformed JSON, and an oversized body return HTTP 400 or 413 with all book rows unchanged; a valid book is created with HTTP 201. This is copied terminal output, not a screenshot. Use a terminal screenshot or a formatted test-results table when preparing the report.
+
+```sh
+secure_programming_project % python scripts/demo_validation.py
+Book validation demo — authenticated as Doon, valid CSRF token, disposable SQLite database
+POST /api/users/1/books (blank title): HTTP 400; Title must contain 1–200 characters.; database unchanged: yes
+POST /api/users/1/books (client-supplied owner ID): HTTP 400; Unexpected book field.; database unchanged: yes
+PUT /api/books/1 (2,001-character note): HTTP 400; Notes must contain at most 2000 characters.; database unchanged: yes
+POST /api/users/1/books (malformed JSON): HTTP 400; Send book details as a JSON object.; database unchanged: yes
+POST /api/users/1/books (20 KiB body): HTTP 413; Request body is too large.; database unchanged: yes
+POST /api/users/1/books (valid book): HTTP 201; owner is Doon; database count increased by one
+```
+
+## HTTPS presentation: certificate validation and protected session cookie
+
+Run the built frontend through Flask's HTTPS mode as described in `docs/DEVELOPMENT.md`. A `curl --cacert local-certs/localhost.crt` request to `/api/health` returned HTTP 200 with certificate verification result `0` on 14 October 2026. The HTTPS login response also had `Secure`, `HttpOnly`, and `SameSite=Lax` cookie attributes; the 16-test backend suite checks that HTTPS mode rejects plaintext requests. The browser screenshot below shows the HTTPS URL and cookie attributes together; the `curl` result is recorded in the test notes but has not been captured as an image.
+
+The replacement image covers the session cookie value with an opaque block and shows the HTTPS URL and cookie flags together. A terminal capture of the `curl --cacert` result can separately show certificate validation. Do not use `curl -k` or a browser certificate-warning bypass as HTTPS evidence. Keep `local-certs/localhost.key`, live cookies, passwords, and CSRF tokens out of the report and repository.
+
+
+
+### Local HTTPS run and protected cookie
+
+The server output below identifies the HTTPS listener; by itself it does not prove that the browser validated the certificate.
+
+```text
+python -m backend.app --port 5443 --cert local-certs/localhost.crt --key local-certs/localhost.key
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on https://127.0.0.1:5443
+Press CTRL+C to quit
+```
+
+The local certificate was regenerated with `mkcert` for `localhost` and `127.0.0.1`. This output records the certificate names and expiry; the private key stays outside the repository.
+
+```text
+mkcert -cert-file local-certs/localhost.crt -key-file local-certs/localhost.key localhost 127.0.0.1
+
+Created a new certificate valid for the following names 📜
+ - "localhost"
+ - "127.0.0.1"
+
+The certificate is at "local-certs/localhost.crt" and the key at "local-certs/localhost.key" ✅
+
+It will expire on 14 January 2029 🗓
+```
+
+The Safari storage panel shows the session cookie has `Secure`, `HttpOnly`, and `SameSite=Lax` set, while the address bar shows `https://127.0.0.1:5443/users/1/dashboard`. The cookie value is fully covered in this copy stored in `media/`.
+
+
+
+![[https-secure-cookie.png]]
