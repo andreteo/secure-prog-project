@@ -2,10 +2,12 @@
 
 Working notes for the 600IT Secure Programming coursework. This is planning material, not a finished report or evidence that the system is secure. Update it as design decisions, implementation changes, and test results become available.
 
-Last updated: 13 October 2026.
+Last updated: 14 October 2026.
 
 ## Current status
 
+- The `v0.1.0-insecure` tag freezes the baseline; `v0.1.1-auth-foundation`, `v0.1.2-ownership`, `v0.1.3-login-throttle`, and `v0.1.4-book-validation` mark subsequent checkpoints. Authentication, ownership, parameterized search, plain-text note rendering, CSRF checks, login throttling, book-field validation, and localhost HTTPS mode have focused tests. Certificate-validated TLS was also checked with `curl --cacert`; production hosting remains outside this local demonstration.
+- Authentication report point: unknown usernames and wrong passwords now receive the same HTTP 401 and `Username or password does not exist.` response. The baseline named a missing username. The generic response reduces direct account-enumeration clues; it does not replace rate limiting, and the public demo-account hint means these particular usernames are intentionally disclosed.
 - The assessment brief has been read, including its marking criteria.
 - The proposed project is a small personal ebook reading tracker with separate private libraries for multiple users.
 - The intended emphasis is security implementation, testing, and explanation. Interface styling is secondary.
@@ -13,7 +15,7 @@ Last updated: 13 October 2026.
 - For a readable presentation, the baseline search executes client-entered `SELECT * FROM books` and `UPDATE books SET notes = 'Changed through SQL' WHERE id = 4`. These are direct execution of client-supplied SQL, distinct from the original search SQL injection using `' OR 1=1 -- `. Label each screenshot accordingly.
 - The frontend build, 10 backend baseline checks, and 10 browser checks passed. Browser checks verified login, persistent create/edit/delete operations, ordinary search, cross-user dashboard access, admin access with and without pseudo-login, SQL injection, harmless stored-script execution, mobile layout, and absence of uncaught JavaScript errors. The browser checks ran against the Vite development site on port 5173, with API requests proxied to Flask. These passing checks characterize the deliberately insecure baseline.
 - Flask debug mode and Vite live refresh are available for local development; see [development instructions](docs/DEVELOPMENT.md).
-- The hardened version and its security controls remain proposed. Earlier diagrams are design illustrations and need updating to include the baseline pseudo-login and admin page.
+- The hardened version has 16 passing backend tests, a validation demo against disposable data, and an HTTPS localhost check. `REPORT_DRAFT.md` now contains the expanded before/after report with figures, a threat table, result comparisons and Harvard references; `docs/LITERATURE_REVIEW.md` maps sources to controls and limitations. The supplied rubric specifies APA 7, so the requested Harvard references must be converted before submission unless current module instructions permit Harvard. The paired Excalidraw diagrams now describe the observed baseline and implemented local secure presentation; matching SVG previews are embedded in the report.
 
 ## Requirements from the assessment brief
 
@@ -46,9 +48,9 @@ Initially excluded: file uploads, cover-image fetching, external book APIs, reco
 
 The deliverable should be a small working system with reproducible security demonstrations. A presentation or mock-up alone would not meet the development requirement.
 
-## Proposed architecture
+## Architecture and diagrams
 
-Provisional stack: React frontend, Flask backend, SQLite database, and an HTTPS web server or reverse proxy. Serve frontend and API through one origin to simplify browser integration. Select exact libraries and versions during implementation and record why they were chosen.
+Implemented local stack: React frontend, Flask API, and SQLite database. The HTTPS demonstration serves the built frontend and API from one Flask origin; it does not use a reverse proxy or production web server.
 
 SQLite is sufficient for demonstrating parameterized queries and application-level ownership checks. It is a local database file, so host file permissions and keeping the file outside public web directories matter. Do not describe it as providing database-user roles or encrypted storage unless those features are actually implemented.
 
@@ -56,16 +58,17 @@ Report comparison diagrams (matching layouts, fully editable):
 
 - [Figure 1 — Insecure baseline in Excalidraw](diagrams/system-baseline.excalidraw).
 - [Figure 2 — Secured design in Excalidraw](diagrams/system-secured.excalidraw).
+- [Figure 3 — Secured user-interaction sequence in Excalidraw](diagrams/system-sequence.excalidraw).
 
-Figure 1 shows a conceptual system with no deliberately implemented security controls: it trusts client-supplied user IDs, builds unsafe SQL, renders raw notes, and uses HTTP. Figure 2 adds the six proposed security-control groups. Both are design illustrations, not evidence of implemented or tested behaviour. The baseline's absence of authentication means login-throttling experiments will need a separate intermediate version with a functioning login endpoint.
+Figure 1 depicts the observed intentionally insecure baseline: it trusts client-supplied user IDs, builds unsafe SQL, renders raw notes and uses HTTP. Figure 2 depicts the implemented local controls and states their limits. Figure 3 traces the secure reader flow and marks denied requests as alternatives. The diagrams explain design and control points; the tests and screenshots supply evidence that the depicted behaviour occurs.
 
-Suggested captions: **Figure 1. Conceptual ebook tracker before deliberate security controls are introduced.** **Figure 2. Proposed ebook tracker after adding authentication, authorization, safe data handling, session protection, throttling, and HTTPS with host hardening.**
+SVG previews of all three editable files are in `diagrams/` and embedded in `REPORT_DRAFT.md`.
 
 The [earlier architecture sketch](diagrams/system-architecture.excalidraw) is retained for reference; use the matched pair above for the report.
 
-Open the `.excalidraw` file in Excalidraw using **Open**, or drag it onto the canvas. All components, labels, arrows, and the application-host trust boundary are editable. Export SVG or PNG from Excalidraw when preparing the report. Keep this file as the source for future architecture changes.
+Open a `.excalidraw` file in Excalidraw using **Open**, or drag it onto the canvas. Components, labels and arrows remain editable. Keep the Excalidraw files as the source for future diagram changes; run `python scripts/export_report_diagrams.py` to regenerate SVG previews after editing the source.
 
-This is a conceptual hardened architecture, not an implementation record. The browser is untrusted. The backend must enforce authentication, authorization, and validation regardless of what the interface permits. If the proxy-to-API connection is local, document that boundary; reassess transport protection if it crosses hosts.
+The browser is untrusted. The backend enforces authentication, authorization and validation regardless of what the interface permits. The secured HTTPS presentation uses an in-process API, so no proxy-to-API network link is claimed.
 
 Likely data entities: users, books owned by users, and server-side sessions. Determine book ownership from the authenticated session on creation; do not trust a client-supplied owner ID.
 
@@ -149,26 +152,7 @@ Authentication establishes identity; authorization determines permitted actions 
 
 ## Diagram plan
 
-1. Baseline and hardened component/data-flow diagrams using the same layout. Number the changes and identify trust boundaries, sensitive flows, and storage.
-2. A sequence diagram showing Otherdoon attempting to edit Doon's book, including session validation, ownership enforcement, and rejection before mutation.
-
-Keep diagrams small enough to explain in the word budget. They should reflect actual implementation when finalised.
-
-
-```mermaid
-sequenceDiagram
-    actor Otherdoon
-    participant API as Python API
-    participant DB as SQLite
-    Otherdoon->>API: Update Doon's book using Otherdoon's session
-    API->>DB: Validate session and obtain authenticated user
-    DB-->>API: Otherdoon's identity
-    API->>DB: Find book matching both book ID and Otherdoon's user ID
-    DB-->>API: No authorized record
-    API-->>Otherdoon: Reject without modifying the book
-```
-
-Decide and consistently test the response policy, such as returning 404 for a record the requester cannot access. Also test that Doon's equivalent update succeeds.
+The matched baseline and secured system diagrams and the full secure-flow sequence diagram are complete and embedded in `REPORT_DRAFT.md`. The sequence covers login, dashboard load, search, book writes, denied cross-user and admin requests, and logout. A cross-user update is rejected with 404 before mutation; the ownership tests also verify that a valid owner's update succeeds. For a strict final word or page budget, select the most useful figure rather than shrinking all three until their labels are unreadable.
 
 ## Testing and evidence plan
 
@@ -180,15 +164,16 @@ Suggested evidence record:
 
 | Test ID | Version or commit | Preconditions | Request or action | Expected result | Actual result | Evidence path | Interpretation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| AUTHZ-01 | Pending | Doon owns a book; Otherdoon logged in | Otherdoon reads Doon's book ID | Hardened version denies access | Not run | Pending | Pending |
-| AUTHZ-02 | Pending | Same accounts and book | Otherdoon edits or deletes Doon's book | Denied; stored record unchanged | Not run | Pending | Pending |
-| AUTHZ-03 | Pending | Doon logged in | Doon updates her own book | Accepted | Not run | Pending | Pending |
-| SQL-01 | Pending | Seeded database | Submit injection-like input to a query endpoint | Input cannot change SQL structure | Not run | Pending | Pending |
-| LOGIN-01 | Pending | Known throttle policy | Repeated failed logins | Limit applied according to policy | Not run | Pending | Pending |
+| AUTHZ-01 | Ownership working tree after `v0.1.1-auth-foundation` | Doon logged in; Otherdoon and admin have books | Read their profiles, lists, and book IDs | Cross-user requests denied | HTTP 404 for each; 9-test backend suite passed on 14 Oct 2026 | `tests/test_ownership.py` | A valid session alone does not grant access to another user's records |
+| AUTHZ-02 | Same working tree | Doon logged in; Otherdoon owns book 4 | Create under user 2; edit and delete book 4 | Denied; stored data unchanged | HTTP 404; book and row count unchanged | `tests/test_ownership.py` | Write authorization is checked on the server |
+| AUTHZ-03 | Same working tree | Otherdoon logged in | Read, create, update, and delete own books | Accepted | Reads and writes succeeded; deleted book then returned 404 | `tests/test_ownership.py` | Ownership checks preserve legitimate use |
+| SQL-01 | Authentication-and-later working tree | Doon signed in; seeded database | Submit `SELECT`, `UPDATE`, and quote-based input as title searches | Input cannot change SQL structure or another user's notes | Empty search results; Otherdoon's note unchanged | `tests/test_auth.py` | Bound parameters keep the search string as data |
+| VALID-01 | Book-validation working tree | Doon signed in; seeded books | Send malformed JSON, invalid fields, oversized notes, and a 20 KiB body | Reject without changing books | HTTP 400 or 413; database rows and count unchanged; 15-test backend suite passed on 14 Oct 2026 | `tests/test_validation.py` | Server-side validation applies to direct API requests as well as the form |
+| LOGIN-01 | Login-throttling working tree | Five login requests from one IP | Sixth request, then retry after the window | HTTP 429 with retry guidance, then login available | 429 with `Retry-After`; valid login succeeds after a short test window; 11-test backend suite passed on 14 Oct 2026 | `tests/test_rate_limit.py` | Per-IP, in-memory throttling slows repeated login requests but does not establish DDoS resilience |
 | SESSION-01 | Pending | Valid session then logout | Replay old session | Authentication required | Not run | Pending | Pending |
 | CSRF-01 | Pending | Logged-in browser session | State-changing request without valid CSRF token | Rejected; data unchanged | Not run | Pending | Pending |
 | XSS-01 | Pending | Stored script-like note | Display note in browser | Text shown; no script execution | Not run | Pending | Pending |
-| TLS-01 | Pending | HTTPS configured | Connect with certificate validation enabled | Trusted encrypted connection | Not run | Pending | Pending |
+| TLS-01 | HTTPS localhost mode | Self-signed local certificate and key generated outside Git | `curl --cacert local-certs/localhost.crt` to `/api/health`; HTTPS login; plaintext request in test client | Validated TLS, protected cookie, plaintext rejected | HTTP 200 with certificate verification result 0; login cookie has `Secure`, `HttpOnly`, `SameSite=Lax`; 16-test backend suite passed on 14 Oct 2026 | `tests/test_auth.py`, `docs/DEVELOPMENT.md` | Certificate was explicitly trusted for this local check; browser trust must be configured separately; this is not a production TLS deployment |
 
 Supplement targeted tests with static analysis, dependency checks, and a scoped dynamic scan if useful. Select tools during implementation and record their versions and limitations. Scanner output alone cannot establish that ownership rules are correct or that the application is secure.
 

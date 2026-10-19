@@ -4,46 +4,70 @@ import './styles.css';
 
 const EMPTY_BOOK = { title: '', author: '', status: 'To read', notes: '' };
 const STATUSES = ['To read', 'Reading', 'Finished'];
+let csrfToken = '';
 
 async function api(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
   const response = await fetch(path, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(method !== 'GET' && method !== 'HEAD' && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+      ...options.headers,
+    },
   });
   if (response.status === 204) return null;
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+  if (!response.ok) {
+    if (response.status === 401 && path !== '/api/login' && path !== '/api/session') {
+      csrfToken = '';
+      window.dispatchEvent(new Event('auth-expired'));
+    }
+    throw new Error(data.error || 'Something went wrong. Please try again.');
+  }
   return data;
 }
 
-function readIdentity() {
-  try { return JSON.parse(localStorage.getItem('baseline-user')) || null; }
-  catch { return null; }
-}
-
 function App() {
-  // Display convenience only: this local state is NOT an authenticated session.
-  const [identity, setIdentity] = useState(readIdentity);
+  const [identity, setIdentity] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
   const [path, setPath] = useState(window.location.pathname);
   useEffect(() => {
+    localStorage.removeItem('baseline-user');
     const onPop = () => setPath(window.location.pathname);
+    const onExpired = () => { setIdentity(null); navigate('/'); };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    window.addEventListener('auth-expired', onExpired);
+    api('/api/session').then(data => {
+      csrfToken = data.csrf_token;
+      setIdentity(data.user);
+    }).catch(() => {}).finally(() => setAuthLoading(false));
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('auth-expired', onExpired);
+    };
   }, []);
   function navigate(next) {
     window.history.pushState({}, '', next);
     setPath(next);
     window.scrollTo(0, 0);
   }
-  function login(user) {
-    localStorage.setItem('baseline-user', JSON.stringify(user));
-    setIdentity(user);
-    navigate(`/users/${user.id}/dashboard`);
+  function login(result) {
+    csrfToken = result.csrf_token;
+    setIdentity(result.user);
+    setAuthError('');
+    navigate(`/users/${result.user.id}/dashboard`);
   }
-  function logout() {
-    localStorage.removeItem('baseline-user');
-    setIdentity(null);
-    navigate('/');
+  async function logout() {
+    try {
+      await api('/api/logout', { method: 'POST' });
+      csrfToken = '';
+      setIdentity(null);
+      setAuthError('');
+      navigate('/');
+    } catch (error) { setAuthError(error.message); }
   }
   const match = path.match(/^\/users\/(\d+)\/dashboard\/?$/);
   const isAdminPage = /^\/admin\/?$/.test(path);
@@ -62,8 +86,11 @@ function App() {
         {!identity && path !== '/' && <a href="/" onClick={e => { e.preventDefault(); navigate('/'); }}>Sign in</a>}
       </nav>
     </header>
+    {authError && <p className="error" role="alert">{authError}</p>}
     <main>
-      {path === '/' ? <Login onLogin={login} /> :
+      {authLoading ? <p role="status" className="empty">Checking your session…</p> :
+        !identity ? <Login onLogin={login} /> :
+        path === '/' ? <Library key={identity.id} userId={identity.id} /> :
         isAdminPage ? <Library key="admin" admin /> :
         match ? <Library key={match[1]} userId={Number(match[1])} /> :
         <section className="empty"><h1>Page not found</h1><p>That page is not part of your library.</p><a href="/">Return to sign in</a></section>}
@@ -74,11 +101,12 @@ function App() {
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(e) {
     e.preventDefault(); setBusy(true); setError('');
-    try { onLogin((await api('/api/login', { method: 'POST', body: JSON.stringify({ username }) })).user); }
+    try { onLogin(await api('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) })); }
     catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
@@ -98,9 +126,18 @@ function Login({ onLogin }) {
       {/* <p className="muted">Enter a demo username to get started.</p> */}
       <label htmlFor="username">Username</label>
       <input id="username" name="username" autoComplete="username" placeholder="e.g. doon" value={username} onChange={e => setUsername(e.target.value)} required />
+      <label htmlFor="password" className="password-label">Password</label>
+      <input id="password" name="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
       {error && <p className="error" role="alert">{error}</p>}
       <button className="primary wide" disabled={busy}>{busy ? 'Opening…' : 'Open library →'}</button>
-      <p className="demo-hint">Demo users: <code>doon</code>, <code>otherdoon</code>, <code>admin</code></p>
+      <div className="demo-hint">
+        <p>Demo accounts (username / password)</p>
+        <ul>
+          <li><code>doon</code><code>doon123456789</code></li>
+          <li><code>otherdoon</code><code>otherdoon123456789</code></li>
+          <li><code>admin</code><code>admin123456789</code></li>
+        </ul>
+      </div>
     </form>
   </section>;
 }
@@ -124,7 +161,6 @@ function Library({ userId, admin = false }) {
     async function load() {
       try {
         const options = { signal: controller.signal };
-        // V04: /admin loads returned API records straight into state. No role gate.
         const [profile, result] = await Promise.all([
           admin ? Promise.resolve(null) : api(`/api/users/${userId}`, options),
           api(admin ? '/api/admin/books' : `/api/users/${userId}/books?q=${encodeURIComponent(appliedQuery)}`, options),
@@ -132,7 +168,6 @@ function Library({ userId, admin = false }) {
         if (!controller.signal.aborted) {
           setUser(profile?.user || null);
           setBooks(result.books);
-          if (Object.hasOwn(result, 'affected_rows')) setNotice(`${result.affected_rows} row${result.affected_rows === 1 ? '' : 's'} updated by the SQL statement.`);
         }
       } catch (err) {
         if (err.name !== 'AbortError') { setError(err.message); setBooks([]); }
@@ -184,8 +219,7 @@ function Library({ userId, admin = false }) {
             <span className={`status status-${STATUSES.indexOf(book.status)}`}>{book.status}</span>
           </div>
           <div className="notes"><span className="notes-label">PRIVATE NOTES</span>
-            {/* V05: intentionally renders untrusted stored HTML in this baseline. */}
-            <div className="notes-content" dangerouslySetInnerHTML={{ __html: book.notes || '<span class="muted">No notes yet.</span>' }} />
+            <div className="notes-content">{book.notes || <span className="muted">No notes yet.</span>}</div>
           </div>
           {!admin && <div className="book-actions">
             {deleting === book.id ? <><span>Remove this book?</span><button disabled={deleteBusy} className="danger" onClick={() => removeBook(book)}>{deleteBusy ? 'Removing…' : 'Yes, remove'}</button><button disabled={deleteBusy} className="text-button" onClick={() => setDeleting(null)}>Cancel</button></> : <>
@@ -207,8 +241,9 @@ function BookEditor({ book, userId, onCancel, onSaved }) {
   async function save(e) {
     e.preventDefault(); setBusy(true); setError('');
     try {
+      const payload = { title: form.title, author: form.author, status: form.status, notes: form.notes };
       const result = await api(book.id ? `/api/books/${book.id}` : `/api/users/${userId}/books`, {
-        method: book.id ? 'PUT' : 'POST', body: JSON.stringify(form),
+        method: book.id ? 'PUT' : 'POST', body: JSON.stringify(payload),
       });
       onSaved(result.book);
     } catch (err) { setError(err.message); }
@@ -216,13 +251,17 @@ function BookEditor({ book, userId, onCancel, onSaved }) {
   }
   return <form className="editor panel" onSubmit={save} aria-label={book.id ? 'Edit book' : 'Add book'}>
     <h2>{book.id ? 'Edit book' : 'Add a book'}</h2>
-    <div className="form-row"><div><label htmlFor="title">Title</label><input id="title" name="title" value={form.title} onChange={change} required autoFocus /></div>
-      <div><label htmlFor="author">Author</label><input id="author" name="author" value={form.author} onChange={change} required /></div>
+    <div className="form-row"><div><label htmlFor="title">Title</label><input id="title" name="title" value={form.title} onChange={change} maxLength={200} required autoFocus /></div>
+      <div><label htmlFor="author">Author</label><input id="author" name="author" value={form.author} onChange={change} maxLength={200} required /></div>
       <div><label htmlFor="status">Reading status</label><select id="status" name="status" value={form.status} onChange={change}>{STATUSES.map(status => <option key={status}>{status}</option>)}</select></div></div>
-    <label htmlFor="notes">Private notes</label><textarea id="notes" name="notes" rows="3" value={form.notes} onChange={change} placeholder="What would you like to remember?" />
+    <label htmlFor="notes">Private notes</label><textarea id="notes" name="notes" rows="3" value={form.notes} onChange={change} maxLength={2000} placeholder="What would you like to remember?" />
     {error && <p className="error" role="alert">{error}</p>}
     <div className="form-actions"><button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save book'}</button><button type="button" disabled={busy} className="secondary" onClick={onCancel}>Cancel</button></div>
   </form>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+
+// doon123456789
+// otherdoon1234
+// admin12345678

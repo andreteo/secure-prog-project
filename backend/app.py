@@ -1,35 +1,60 @@
-"""INTENTIONALLY INSECURE. Local dummy-data teaching application only.
-
-Weakness IDs match docs/BASELINE_DEMO.md. Flask/SQLite defaults and a few
-parameterized maintenance operations do not make this application secure.
-"""
+"""Local coursework app. Authentication and ownership are implemented; hardening continues."""
 
 import argparse
+import getpass
+import hashlib
+import secrets
 import sqlite3
+import time
 from contextlib import closing
 from pathlib import Path
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, make_response, request, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.security import check_password_hash, generate_password_hash
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DB = ROOT / 'instance' / 'baseline.sqlite3'
+DEFAULT_DB = ROOT / 'instance' / 'secure.sqlite3'
+SESSION_COOKIE = 'bookledger_session'
+SESSION_LIFETIME = 60 * 60
+LOGIN_LIMIT = '5 per minute'
+LOGIN_ERROR = 'Username or password does not exist.'
+BOOK_FIELDS = {'title', 'author', 'status', 'notes'}
+BOOK_STATUSES = {'To read', 'Reading', 'Finished'}
+MAX_TITLE_LENGTH = 200
+MAX_AUTHOR_LENGTH = 200
+MAX_NOTES_LENGTH = 2000
+DUMMY_PASSWORD_HASH = generate_password_hash('dummy-password-for-timing')
 BOOK_SELECT = '''SELECT b.id, b.user_id, u.username, u.display_name,
     b.title, b.author, b.status, b.notes
     FROM books b JOIN users u ON u.id = b.user_id'''
 
 
-def reset_database(path):
-    """Reset only this application's demo tables; never accept a remote reset."""
+def reset_database(path, passwords):
+    """Initialize local demo tables using passwords supplied at the terminal."""
+    if set(passwords) != {'doon', 'otherdoon', 'admin'}:
+        raise ValueError('Passwords are required for doon, otherdoon, and admin.')
+    if any(not isinstance(value, str) or len(value) < 12 for value in passwords.values()):
+        raise ValueError('Each demo password must have at least 12 characters.')
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(path)) as db, db:
         db.executescript('''
+            DROP TABLE IF EXISTS sessions;
             DROP TABLE IF EXISTS books;
             DROP TABLE IF EXISTS users;
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 username TEXT NOT NULL UNIQUE,
                 display_name TEXT NOT NULL,
-                role TEXT NOT NULL
+                role TEXT NOT NULL,
+                password_hash TEXT NOT NULL
+            );
+            CREATE TABLE sessions (
+                token_hash TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                csrf_token TEXT NOT NULL,
+                expires_at INTEGER NOT NULL
             );
             CREATE TABLE books (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,10 +65,10 @@ def reset_database(path):
                 notes TEXT NOT NULL DEFAULT ''
             );
         ''')
-        db.executemany('INSERT INTO users VALUES (?, ?, ?, ?)', [
-            (1, 'doon', 'Doon', 'user'),
-            (2, 'otherdoon', 'Otherdoon', 'user'),
-            (3, 'admin', 'Administrator', 'admin'),
+        db.executemany('INSERT INTO users VALUES (?, ?, ?, ?, ?)', [
+            (1, 'doon', 'Doon', 'user', generate_password_hash(passwords['doon'])),
+            (2, 'otherdoon', 'Otherdoon', 'user', generate_password_hash(passwords['otherdoon'])),
+            (3, 'admin', 'Administrator', 'admin', generate_password_hash(passwords['admin'])),
         ])
         db.executemany(
             'INSERT INTO books (user_id, title, author, status, notes) VALUES (?, ?, ?, ?, ?)',
@@ -66,11 +91,27 @@ def reset_database(path):
         )
 
 
-def create_app(database_path=None):
+def create_app(database_path=None, login_limit=LOGIN_LIMIT, require_https=False):
     app = Flask(__name__, static_folder=None)
     app.config['DATABASE'] = str(database_path or DEFAULT_DB)
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
+    app.config['REQUIRE_HTTPS'] = require_https
+    if require_https:
+        app.config['TRUSTED_HOSTS'] = ['127.0.0.1', 'localhost']
     if not Path(app.config['DATABASE']).exists():
-        reset_database(app.config['DATABASE'])
+        raise RuntimeError('Secure database is missing. Run: python -m backend.app --init-db')
+
+    def login_limit_response(_limit):
+        return make_response(jsonify(error='Too many login attempts. Try again later.'), 429)
+
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        storage_uri='memory://',
+        headers_enabled=True,
+        retry_after='delta-seconds',
+        on_breach=login_limit_response,
+    )
 
     def db():
         if 'db' not in g:
@@ -87,96 +128,199 @@ def create_app(database_path=None):
     def book_by_id(book_id):
         return db().execute(BOOK_SELECT + ' WHERE b.id = ?', (book_id,)).fetchone()
 
+    def owned_book(book_id):
+        return db().execute(
+            BOOK_SELECT + ' WHERE b.id = ? AND b.user_id = ?',
+            (book_id, current_session()['id']),
+        ).fetchone()
+
+    def validated_book_fields(existing=None):
+        incoming = request.get_json(silent=True)
+        if not isinstance(incoming, dict):
+            return None, 'Send book details as a JSON object.'
+        if set(incoming) - BOOK_FIELDS:
+            return None, 'Unexpected book field.'
+        values = {
+            'title': incoming.get('title', existing['title'] if existing else ''),
+            'author': incoming.get('author', existing['author'] if existing else ''),
+            'status': incoming.get('status', existing['status'] if existing else 'To read'),
+            'notes': incoming.get('notes', existing['notes'] if existing else ''),
+        }
+        for field, limit in (('title', MAX_TITLE_LENGTH), ('author', MAX_AUTHOR_LENGTH)):
+            value = values[field]
+            if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit:
+                return None, f'{field.capitalize()} must contain 1–{limit} characters.'
+            values[field] = value.strip()
+        if not isinstance(values['status'], str) or values['status'] not in BOOK_STATUSES:
+            return None, 'Choose a valid reading status.'
+        if not isinstance(values['notes'], str) or len(values['notes']) > MAX_NOTES_LENGTH:
+            return None, f'Notes must contain at most {MAX_NOTES_LENGTH} characters.'
+        return values, None
+
+    def public_user(row):
+        return {key: row[key] for key in ('id', 'username', 'display_name', 'role')}
+
+    def token_hash(token):
+        return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+    def current_session():
+        if not hasattr(g, 'current_session'):
+            token = request.cookies.get(SESSION_COOKIE, '')
+            g.current_session = None
+            if token:
+                g.current_session = db().execute('''
+                    SELECT s.token_hash, s.csrf_token, u.id, u.username, u.display_name, u.role
+                    FROM sessions s JOIN users u ON u.id = s.user_id
+                    WHERE s.token_hash = ? AND s.expires_at > ?
+                ''', (token_hash(token), int(time.time()))).fetchone()
+        return g.current_session
+
+    @app.before_request
+    def guard_api():
+        if app.config['REQUIRE_HTTPS'] and not request.is_secure:
+            return jsonify(error='HTTPS is required.'), 403
+        if not request.path.startswith('/api/') or request.path in {'/api/login', '/api/session', '/api/health'}:
+            return None
+        session = current_session()
+        if session is None:
+            return jsonify(error='Sign in to continue.'), 401
+        if request.path.startswith('/api/admin/') and session['role'] != 'admin':
+            return jsonify(error='Administrator access required.'), 403
+        if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
+            supplied = request.headers.get('X-CSRF-Token', '')
+            if not supplied or not secrets.compare_digest(supplied, session['csrf_token']):
+                return jsonify(error='Invalid request token.'), 403
+        return None
+
+    @app.after_request
+    def prevent_api_caching(response):
+        if request.path.startswith('/api/'):
+            response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    @app.errorhandler(413)
+    def request_too_large(_error):
+        return jsonify(error='Request body is too large.'), 413
+
     @app.get('/api/health')
     def health():
         db().execute('SELECT 1')
-        return jsonify(status='ok', stage='intentionally-insecure-baseline')
+        return jsonify(status='ok', stage='hardening-in-progress')
 
     @app.post('/api/login')
+    @limiter.limit(login_limit)
     def login():
-        # V01: knowledge of a username is treated as identity. No password,
-        # server session, token, or rate limit is involved.
-        data = request.get_json() or {}
-        username = str(data.get('username', '')).strip().lower()
-        user = db().execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        if user is None:
-            return jsonify(error='That username does not exist.'), 404
-        return jsonify(user=dict(user))
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify(error=LOGIN_ERROR), 401
+        username = data.get('username', '')
+        password = data.get('password', '')
+        if not isinstance(username, str) or not isinstance(password, str) or len(username) > 100 or len(password) > 1024:
+            return jsonify(error=LOGIN_ERROR), 401
+        user = db().execute('SELECT * FROM users WHERE username = ?', (username.strip().lower(),)).fetchone()
+        valid = check_password_hash(user['password_hash'] if user else DUMMY_PASSWORD_HASH, password)
+        if not user or not valid:
+            return jsonify(error=LOGIN_ERROR), 401
+        previous = request.cookies.get(SESSION_COOKIE)
+        if previous:
+            db().execute('DELETE FROM sessions WHERE token_hash = ?', (token_hash(previous),))
+        token = secrets.token_urlsafe(32)
+        csrf_token = secrets.token_urlsafe(32)
+        db().execute('INSERT INTO sessions VALUES (?, ?, ?, ?)',
+                     (token_hash(token), user['id'], csrf_token, int(time.time()) + SESSION_LIFETIME))
+        db().commit()
+        response = jsonify(user=public_user(user), csrf_token=csrf_token)
+        response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_LIFETIME,
+                            secure=request.is_secure, httponly=True, samesite='Lax', path='/')
+        return response
+
+    @app.get('/api/session')
+    def session_info():
+        session = current_session()
+        if session is None:
+            return jsonify(error='Sign in to continue.'), 401
+        return jsonify(user=public_user(session), csrf_token=session['csrf_token'])
+
+    @app.post('/api/logout')
+    def logout():
+        db().execute('DELETE FROM sessions WHERE token_hash = ?', (current_session()['token_hash'],))
+        db().commit()
+        response = jsonify(status='signed-out')
+        response.delete_cookie(SESSION_COOKIE, path='/', samesite='Lax')
+        return response
 
     @app.get('/api/users/<int:user_id>')
     def get_user(user_id):
-        # V02: any caller can choose any user ID, including without logging in.
+        if user_id != current_session()['id']:
+            return jsonify(error='User not found.'), 404
         user = db().execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
         if user is None:
             return jsonify(error='User not found.'), 404
-        return jsonify(user=dict(user))
+        return jsonify(user=public_user(user))
 
     @app.get('/api/users/<int:user_id>/books')
     def list_books(user_id):
+        if user_id != current_session()['id']:
+            return jsonify(error='User not found.'), 404
         search = request.args.get('q', '')
-        statement = search.strip()
-        try:
-            if statement.upper().startswith('UPDATE BOOKS SET '):
-                cursor = db().execute(statement)
-                db().commit()
-                rows = db().execute(BOOK_SELECT + ' ORDER BY b.user_id, b.id').fetchall()
-                return jsonify(books=[dict(row) for row in rows], affected_rows=cursor.rowcount)
-            if statement.upper().startswith('SELECT '):
-                rows = db().execute(statement).fetchall()
-            else:
-                sql = BOOK_SELECT + f" WHERE b.user_id = {user_id} AND b.title LIKE '%{search}%' ORDER BY b.id"
-                rows = db().execute(sql).fetchall()
-        except sqlite3.Error as error:
-            return jsonify(error=f'Database query failed: {error}'), 400
+        if len(search) > 200:
+            return jsonify(error='Search is too long.'), 400
+        rows = db().execute(
+            BOOK_SELECT + ' WHERE b.user_id = ? AND b.title LIKE ? ORDER BY b.id',
+            (current_session()['id'], f'%{search}%'),
+        ).fetchall()
         return jsonify(books=[dict(row) for row in rows])
 
     @app.get('/api/books/<int:book_id>')
     def get_book(book_id):
-        row = book_by_id(book_id)
+        row = owned_book(book_id)
         if row is None:
             return jsonify(error='Book not found.'), 404
         return jsonify(book=dict(row))
 
     @app.post('/api/users/<int:user_id>/books')
     def create_book(user_id):
-        data = request.get_json() or {}
-        if db().execute('SELECT id FROM users WHERE id = ?', (user_id,)).fetchone() is None:
+        if user_id != current_session()['id']:
             return jsonify(error='User not found.'), 404
-        # V02: the URL selects the owner; no authenticated identity is checked.
-        # Bound writes keep ordinary apostrophes usable; search is the SQL demo.
+        data, error = validated_book_fields()
+        if error:
+            return jsonify(error=error), 400
         cursor = db().execute(
             'INSERT INTO books (user_id, title, author, status, notes) VALUES (?, ?, ?, ?, ?)',
-            (user_id, data.get('title', ''), data.get('author', ''),
-             data.get('status', 'To read'), data.get('notes', '')),
+            (current_session()['id'], *(data[field] for field in ('title', 'author', 'status', 'notes'))),
         )
         db().commit()
         return jsonify(book=dict(book_by_id(cursor.lastrowid))), 201
 
     @app.put('/api/books/<int:book_id>')
     def update_book(book_id):
-        # V02: no ownership, role, authentication, or CSRF check.
-        row = book_by_id(book_id)
+        row = owned_book(book_id)
         if row is None:
             return jsonify(error='Book not found.'), 404
-        data = request.get_json() or {}
+        data, error = validated_book_fields(row)
+        if error:
+            return jsonify(error=error), 400
         db().execute(
-            'UPDATE books SET title = ?, author = ?, status = ?, notes = ? WHERE id = ?',
-            tuple(data.get(field, row[field]) for field in ('title', 'author', 'status', 'notes')) + (book_id,),
+            'UPDATE books SET title = ?, author = ?, status = ?, notes = ? WHERE id = ? AND user_id = ?',
+            tuple(data[field] for field in ('title', 'author', 'status', 'notes'))
+            + (book_id, current_session()['id']),
         )
         db().commit()
-        return jsonify(book=dict(book_by_id(book_id)))
+        return jsonify(book=dict(owned_book(book_id)))
 
     @app.delete('/api/books/<int:book_id>')
     def delete_book(book_id):
-        if book_by_id(book_id) is None:
+        cursor = db().execute(
+            'DELETE FROM books WHERE id = ? AND user_id = ?',
+            (book_id, current_session()['id']),
+        )
+        if cursor.rowcount == 0:
             return jsonify(error='Book not found.'), 404
-        db().execute('DELETE FROM books WHERE id = ?', (book_id,))
         db().commit()
         return '', 204
 
     @app.get('/api/admin/books')
     def admin_books():
-        # V04: deliberately no require_authenticated_user() / require_admin().
         return jsonify(books=[dict(row) for row in db().execute(BOOK_SELECT + ' ORDER BY b.user_id, b.id')])
 
     @app.get('/')
@@ -197,13 +341,32 @@ def create_app(database_path=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--reset-db', action='store_true', help='Restore dummy demo data and exit.')
+    parser.add_argument('--init-db', action='store_true', help='Initialize or reset the secure demo DB and prompt for passwords.')
     parser.add_argument('--port', type=int, default=5001)
     parser.add_argument('--debug', action='store_true', help='Enable local debug mode and reload on Python changes.')
+    parser.add_argument('--cert', type=Path, help='Local HTTPS certificate (PEM). Requires --key.')
+    parser.add_argument('--key', type=Path, help='Local HTTPS private key (PEM). Requires --cert.')
     args = parser.parse_args()
-    if args.reset_db:
-        reset_database(DEFAULT_DB)
-        print(f'Restored dummy data in {DEFAULT_DB}')
+    if bool(args.cert) != bool(args.key):
+        parser.error('--cert and --key must be supplied together')
+    if args.cert and args.debug:
+        parser.error('HTTPS demonstration mode cannot run with --debug')
+    if args.init_db:
+        passwords = {}
+        for username in ('doon', 'otherdoon', 'admin'):
+            while True:
+                password = getpass.getpass(f'Password for {username} (at least 12 characters): ')
+                confirm = getpass.getpass('Confirm password: ')
+                if len(password) >= 12 and password == confirm:
+                    passwords[username] = password
+                    break
+                print('Passwords must match and contain at least 12 characters.')
+        reset_database(DEFAULT_DB, passwords)
+        print(f'Initialized secure demo data in {DEFAULT_DB}')
     else:
-        # Local-only containment is deliberate; this is not a public deployment.
-        create_app().run(host='127.0.0.1', port=args.port, debug=args.debug)
+        if args.cert and (not args.cert.is_file() or not args.key.is_file()):
+            parser.error('certificate and key files must exist')
+        ssl_context = (str(args.cert), str(args.key)) if args.cert else None
+        create_app(require_https=bool(ssl_context)).run(
+            host='127.0.0.1', port=args.port, debug=args.debug, ssl_context=ssl_context,
+        )
