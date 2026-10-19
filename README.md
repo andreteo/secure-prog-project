@@ -35,6 +35,14 @@ Create the secure demo database and choose passwords for `doon`, `otherdoon`, an
 
 ## Run the frontend and backend for development
 
+Start both servers and open the frontend with one command:
+
+```sh
+./scripts/start.sh
+```
+
+Press Ctrl+C to stop both servers. The frontend has live refresh; restart the script after backend code changes. If you want Flask's Python auto-reload, use the two-terminal commands below instead.
+
 In terminal 1, start the Flask backend:
 
 ```sh
@@ -52,6 +60,14 @@ Open <http://127.0.0.1:5173>. Vite serves the frontend with live refresh and for
 If Flask reports that the secure database is missing, run the `--init-db` command from first-time setup.
 
 ## Run the HTTPS presentation
+
+To build the frontend, start the HTTPS server, and open the app with one command (after setting up the certificate below):
+
+```sh
+./scripts/start.sh --https
+```
+
+Press Ctrl+C to stop it. The equivalent manual commands are below.
 
 Build the React frontend first:
 
