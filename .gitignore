@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 instance/
 local-certs/
+.demo-baseline/
 .DS_Store
 test-results/
 600IT_PSB_CW2_Assessment_Brief*.docx

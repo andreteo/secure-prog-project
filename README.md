@@ -102,4 +102,19 @@ curl --cacert local-certs/localhost.crt https://127.0.0.1:5443/api/health
 
 This HTTPS setup is for a local presentation, not public deployment.
 
+## Compare the insecure and secured versions
+
+Run both versions side by side without switching Git branches:
+
+```sh
+./scripts/start_comparison.sh
+```
+
+The script extracts the tagged `v0.1.0-insecure` code into an ignored `.demo-baseline/` folder and builds it on the first run, using the project's installed frontend packages. It resets **only the baseline demo database** each time, builds the current secured frontend, and opens two local tabs:
+
+- Insecure baseline: <http://127.0.0.1:5001> (username only)
+- Secured version: <https://127.0.0.1:5443> (username and password)
+
+Press Ctrl+C to stop both servers. If either port is already in use, stop the existing server first. The insecure copy is confined to localhost and uses synthetic data; do not expose its port to other devices.
+
 The report draft, diagrams, and screenshot notes are in `REPORT_DRAFT.md`, `diagrams/`, and `SCREENSHOTS.md`.
