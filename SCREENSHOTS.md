@@ -2,6 +2,10 @@
 
 These screenshots use local demonstration accounts and data. Pair each observed result with the relevant backend code when preparing the report.
 
+## Optional Nmap transport comparison — evidence still to capture
+
+Follow [`docs/NMAP_EXPERIMENT.md`](docs/NMAP_EXPERIMENT.md). Capture the loopback scan of ports 5001 and 5443, and optionally the secured port's `ssl-cert` output. Record the running mode and actual results before adding any claim to the report. Nmap identifies exposed services and a presented certificate; the existing HTTP requests and tests establish application behavior.
+
 ## Baseline interface
 
 Username-only entry page:
@@ -204,3 +208,10 @@ The Safari storage panel shows the session cookie has `Secure`, `HttpOnly`, and 
 
 
 ![[https-secure-cookie.png]]
+
+## nmap
+![[Image 22-10-26 at 4.22 AM.png]]
+
+![[Image 22-10-26 at 4.25 AM.png]]
+
+![[Image 22-10-26 at 4.24 AM.png]]

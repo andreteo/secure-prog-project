@@ -83,6 +83,8 @@ The secure API also returns `Cache-Control: no-store` and the built interface is
 
 ## Security verification and evaluation
 
+An optional Nmap experiment can complement the transport evidence. A scoped scan of `127.0.0.1` on ports 5001 and 5443 compares the baseline HTTP listener with the secured TLS listener; Nmap's `ssl-cert` script can record the certificate presented by the latter (Nmap, n.d.-a; n.d.-b). This is local service discovery, not a test of password, ownership or SQL controls. Nmap was not installed or run when this draft was updated, so no scan result is claimed here. The commands and evidence checklist are in [`docs/NMAP_EXPERIMENT.md`](docs/NMAP_EXPERIMENT.md). Add observed results and a screenshot only after running it.
+
 The 16 backend tests use disposable SQLite databases. Authentication tests compare unknown-user and wrong-password responses, verify session rotation, expiry and logout, and check cookie attributes. Ownership tests deny cross-user read, create, update and delete requests while allowing the owner to perform them. SQL tests submit `SELECT`, `UPDATE` and quote-based input as search text; the response contains no unauthorized records and the other user's note remains unchanged. Validation tests reject malformed JSON, unexpected owner IDs, invalid fields and an oversized body without modifying stored rows. Legitimate creation and partial updates still succeed. Login tests confirm 429 on the sixth request and recovery after the configured test window. HTTPS mode tests reject plaintext and verify `Secure`; a separate `curl --cacert` request to the local TLS server returned HTTP 200 with certificate verification result 0. The React build also passed.
 
 | Scenario                    | Baseline result                                                  | Secured result and evidence                                                                                                   |
@@ -128,6 +130,10 @@ Anderson, R. (2020) *Security engineering: A guide to building dependable distri
 McGraw, G. (2006) *Software security: Building security in*. Boston, MA: Addison-Wesley Professional. Available at: https://www.pearson.com/en-us/subject-catalog/p/software-security-building-security-in/P200000009049/9780321356703 (Accessed: 14 October 2026).
 
 National Institute of Standards and Technology (NIST) (2025) *Digital identity guidelines: Authentication and authenticator management*, NIST SP 800-63B-4. Available at: https://csrc.nist.gov/pubs/sp/800/63/B/4/final (Accessed: 14 October 2026).
+
+Nmap (n.d.-a) ‘Service and version detection’. Available at: https://nmap.org/book/man-version-detection.html (Accessed: 22 October 2026).
+
+Nmap (n.d.-b) ‘ssl-cert NSE script’. Available at: https://nmap.org/nsedoc/scripts/ssl-cert.html (Accessed: 22 October 2026).
 
 OWASP (2020) *Web Security Testing Guide*. Version 4.2. Available at: https://wstg.owasp.org/v4.2/ (Accessed: 14 October 2026).
 
